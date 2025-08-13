@@ -1,0 +1,14 @@
+
+node_modules
+.DS_Store
+dist
+.nyc_output
+coverage
+test-reports
+stats.html
+data
+.env
+# package-lock.json
+data
+build
+logs
