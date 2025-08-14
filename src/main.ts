@@ -1,5 +1,6 @@
 
 import 'source-map-support/register';
+import { initServer } from './server';
 
 (async () => {
   try {
@@ -12,6 +13,7 @@ import 'source-map-support/register';
 
 async function init() {
   setProcName();
+  await initServer();
 }
 
 function setProcName() {

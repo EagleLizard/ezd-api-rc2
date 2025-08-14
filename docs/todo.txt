@@ -1,0 +1,9 @@
+
+08/14/2025
+
+- ts schema validation
+  - typebox
+- session
+- auth
+  - authN
+  - authZ

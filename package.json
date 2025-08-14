@@ -21,8 +21,17 @@
     "@stylistic/eslint-plugin": "^5.2.3",
     "@types/node": "^22.17.1",
     "eslint": "^9.33.0",
-    "source-map-support": "^0.5.21",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.39.1"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/cors": "^11.1.0",
+    "@fastify/session": "^11.1.0",
+    "@sinclair/typebox": "^0.34.38",
+    "dotenv": "^17.2.1",
+    "fastify": "^5.5.0",
+    "pino": "^9.9.0",
+    "source-map-support": "^0.5.21"
   }
 }
