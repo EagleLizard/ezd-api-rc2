@@ -1,0 +1,11 @@
+
+CREATE EXTENSION pgcrypto;
+
+create table session (
+  sid TEXT PRIMARY KEY NOT NULL UNIQUE,
+  sesh json NOT NULL,
+  expire TIMESTAMP NOT NULL,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

@@ -7,6 +7,14 @@ const DEV_ENV_STR = 'dev';
 const ezdConfig = {
   EZD_HOST: getEnvVarOrErr('EZD_HOST'),
   EZD_PORT: getNumberEnvVar('EZD_PORT'),
+  EZD_WEB_ORIGIN: getEnvVarOrErr('EZD_WEB_ORIGIN'),
+  SESSION_SECRET: getEnvVarOrErr('SESSION_SECRET'),
+
+  POSTGRES_HOST: getEnvVarOrErr('POSTGRES_HOST'),
+  POSTGRES_PORT: getNumberEnvVar('POSTGRES_PORT'),
+  POSTGRES_USER: getEnvVarOrErr('POSTGRES_USER'),
+  POSTGRES_PASSWORD: getEnvVarOrErr('POSTGRES_PASSWORD'),
+  POSTGRES_DB: getEnvVarOrErr('POSTGRES_DB'),
 
   isDevEnv: isDevEnv,
 } as const;

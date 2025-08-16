@@ -12,3 +12,5 @@ data
 data
 build
 logs
+
+ezd_api_pg_db_data

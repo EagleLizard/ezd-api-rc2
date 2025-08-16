@@ -7,6 +7,7 @@ import fastifySession from '@fastify/session';
 import { logger } from './lib/logger/logger';
 import { registerPublicRoutes } from './routes';
 import { ezdConfig } from './lib/config';
+import { EzdSessionStore } from './lib/middleware/ezd-session-store';
 
 export async function initServer() {
   let app: FastifyInstance;
@@ -17,9 +18,30 @@ export async function initServer() {
     loggerInstance: logger,
   });
   app.register(cors, {
-    origin: '*',
+    // origin: '*',
+    origin: ezdConfig.EZD_WEB_ORIGIN,
     credentials: true,
   });
+  app.register(fastifyCookie);
+  let seshStore = new EzdSessionStore();
+  app.register(fastifySession, {
+    secret: ezdConfig.SESSION_SECRET,
+    saveUninitialized: true,
+    store: seshStore,
+    cookie: {
+      /* TODO: fix maxAge */
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      secure: 'auto',
+      httpOnly: false,
+    }
+  });
+
+  // app.addHook('onSend', (req, rep, payload: unknown, done) => {
+  //   // console.log(req.session);
+  //   // console.log(req.cookies);
+  //   done();
+  // });
+
   /* public routes _*/
   registerPublicRoutes(app);
   host = ezdConfig.EZD_HOST;
