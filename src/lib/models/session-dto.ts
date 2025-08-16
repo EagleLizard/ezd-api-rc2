@@ -4,14 +4,14 @@ import { tbUtil } from '../../util/tb-util';
 
 const SessionDtoTSchema = Type.Object({
   sid: Type.String(),
-  sess: Type.Object({
+  sesh: Type.Object({
     cookie: Type.Object({
       originalMaxAge: Type.Union([ Type.Number(), Type.Null() ]),
       maxAge: Type.Optional(Type.Number()),
-      expires: Type.Optional(Type.Union([ Type.Number(), Type.Null() ])),
+      expires: Type.Optional(Type.Union([ Type.String(), Type.Null() ])),
       httpOnly: Type.Optional(Type.Boolean()),
       path: Type.Optional(Type.String()),
-      domain: Type.Optional(Type.String()),
+      domain: Type.Optional(Type.Union([ Type.String(), Type.Null() ])),
       secure: Type.Optional(Type.Union([ Type.Boolean(), Type.Literal('auto') ])),
       sameSite: Type.Optional(Type.Union([
         Type.Boolean(),

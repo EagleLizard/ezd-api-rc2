@@ -44,7 +44,7 @@ const config = [
         code: 100,
         // ignoreStrings: true,
         ignoreTemplateLiterals: true,
-        ignoreComments: true,
+        // ignoreComments: true,
       }],
       '@stylistic/quotes': [ 'error', 'single', {
         avoidEscape: true,
