@@ -16,6 +16,8 @@ const ezdConfig = {
   POSTGRES_PASSWORD: getEnvVarOrErr('POSTGRES_PASSWORD'),
   POSTGRES_DB: getEnvVarOrErr('POSTGRES_DB'),
 
+  EZD_SESSION_ID_NAME: 'ezdSeshId',
+
   isDevEnv: isDevEnv,
 } as const;
 

@@ -9,3 +9,36 @@ create table session (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+create table user_role (
+  role_id SERIAL PRIMARY KEY,
+  role_name TEXT NOT NULL UNIQUE,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- the default role
+insert into user_role (role_name) values('Default');
+
+create table users (
+  user_id SERIAL PRIMARY KEY,
+  user_name TEXT NOT NULL UNIQUE,
+  email TEXT NOT NULL UNIQUE,
+
+  role_id INT references user_role(role_id) NOT NULL,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+create table password (
+  password_id SERIAL PRIMARY KEY,
+  password_hash TEXT NOT NULL,
+  salt TEXT NOT NULL,
+
+  user_id INT references users(user_id) ON DELETE CASCADE,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

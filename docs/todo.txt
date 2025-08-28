@@ -1,9 +1,21 @@
 
+08/17/2025
+- users
+  - db tables
+    - user
+    - password
+    - role
+  - register
+  - login
+- auth
+  - authN
+  - authZ
+
 08/14/2025
 
-- ts schema validation
-  - typebox
-- session
+-x ts schema validation
+  -x typebox
+-x session
 - auth
   - authN
   - authZ

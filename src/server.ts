@@ -9,6 +9,10 @@ import { registerPublicRoutes } from './routes';
 import { ezdConfig } from './lib/config';
 import { EzdSessionStore } from './lib/middleware/ezd-session-store';
 
+const cookie_max_age_days = 14;
+
+const cookie_max_age_ms = cookie_max_age_days * 24 * 60 * 60 * 1000;
+
 export async function initServer() {
   let app: FastifyInstance;
   let port: number;
@@ -28,12 +32,14 @@ export async function initServer() {
     secret: ezdConfig.SESSION_SECRET,
     saveUninitialized: true,
     store: seshStore,
+    cookieName: ezdConfig.EZD_SESSION_ID_NAME,
     cookie: {
       /* TODO: fix maxAge */
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      // maxAge: cookie_max_age_days * 24 * 60 * 60 * 1000,
+      maxAge: cookie_max_age_ms,
       secure: 'auto',
       httpOnly: false,
-    }
+    },
   });
 
   // app.addHook('onSend', (req, rep, payload: unknown, done) => {

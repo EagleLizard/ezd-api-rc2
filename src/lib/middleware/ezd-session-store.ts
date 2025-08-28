@@ -7,6 +7,11 @@ import { QueryResult } from 'pg';
 import { prim } from '../../util/validate-primitives';
 
 const ONE_DAY_SECS = 60 * 60 * 24;
+/*
+TODO: remove this?
+  - key off of cookie expiry
+  - change to something else or clarify why this column exists
+_*/
 const SESSION_EXPIRE_DEFAULT = ONE_DAY_SECS;
 
 export class EzdSessionStore implements FastifySession.SessionStore {

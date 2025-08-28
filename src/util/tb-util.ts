@@ -18,10 +18,10 @@ function decodeWithSchema<S extends TSchema>(tschema: S, rawVal: unknown): Stati
     if(!(e instanceof TransformDecodeCheckError)) {
       throw e;
     }
-    // let errs = Value.Errors(tschema, rawVal);
-    // [ ...errs ].forEach((err, idx) => {
-    //   console.log(err);
-    // });
+    let errs = Value.Errors(tschema, rawVal);
+    [ ...errs ].forEach((err, idx) => {
+      console.log(err);
+    });
     throw new Error(`${e.error.message}, path: ${e.error.path}`, { cause: e });
   }
   return decoded;

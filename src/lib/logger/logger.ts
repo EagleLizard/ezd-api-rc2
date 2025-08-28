@@ -1,6 +1,6 @@
 
 import path from 'node:path';
-import pino, { destination } from 'pino';
+import pino from 'pino';
 
 import { ezdConfig } from '../config';
 import { files } from '../../util/files';

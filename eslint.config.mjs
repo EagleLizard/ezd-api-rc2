@@ -43,8 +43,8 @@ const config = [
       '@stylistic/max-len': [ 'warn', {
         code: 100,
         // ignoreStrings: true,
-        ignoreTemplateLiterals: true,
-        // ignoreComments: true,
+        // ignoreTemplateLiterals: true,
+        ignoreComments: true,
       }],
       '@stylistic/quotes': [ 'error', 'single', {
         avoidEscape: true,

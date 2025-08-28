@@ -1,5 +1,5 @@
 
-import { Pool, QueryConfig, QueryConfigValues, QueryResult } from 'pg';
+import { Pool, PoolClient, QueryConfig, QueryConfigValues, QueryResult } from 'pg';
 import { ezdConfig } from '../config';
 
 const pgPool = new Pool({
@@ -11,10 +11,37 @@ const pgPool = new Pool({
 });
 
 export class PgClient {
-  static async query(
+  private _client: PoolClient;
+  private constructor(_client: PoolClient) {
+    this._client = _client;
+  }
+  /* should match static PgClient.query() signature _*/
+  query(
     query: string | QueryConfig,
     vals?: QueryConfigValues<unknown[]>
   ): Promise<QueryResult> {
-    return await pgPool.query(query, vals);
+    return this._client.query(query, vals);
+  }
+  release(err?: Error | boolean) {
+    return this._client.release(err);
+  }
+
+  /*
+    default static uses pool.query()
+      this should NOT be used for transactions.
+      See: https://node-postgres.com/features/transactions
+  _*/
+  static query(
+    query: string | QueryConfig,
+    vals?: QueryConfigValues<unknown[]>
+  ): Promise<QueryResult> {
+    return pgPool.query(query, vals);
+  }
+
+  static async initClient(): Promise<PgClient> {
+    let pgClient: PgClient;
+    let client = await pgPool.connect();
+    pgClient = new PgClient(client);
+    return pgClient;
   }
 }
