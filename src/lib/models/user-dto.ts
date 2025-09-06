@@ -7,8 +7,6 @@ const UserDtoTSchema = Type.Object({
   user_name: Type.String(),
   email: Type.String(),
 
-  role_id: Type.Integer(), // FK
-
   created_at: Type.Date(),
   modified_at: Type.Date(),
 });

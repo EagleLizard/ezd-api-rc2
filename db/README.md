@@ -40,3 +40,18 @@ To delete, remove the volume directory the docker container mounts to:
 ```sh
 rm -rf ./ezd_api_pg_db_data
 ```
+
+## Logs
+
+Tail errors:
+```sh
+tail -f logs/app.log | jq -r 'select(.level == "error") | .err.stack'
+```
+
+## Live reload html and static assets with vite
+
+vite will live-reload html by default, run:
+
+```sh
+npx vite serve ./static
+```

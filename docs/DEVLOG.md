@@ -4,6 +4,70 @@ This document exists to track tasks & thoughts in lieu of a task management syst
 
 The format is roughly reverse-chronological by date.
 
+## [09/01/2025]
+
+### 2 - `/src/lib/module/` is a bad name imo
+
+I saw this convention somewhere and copied it; the original intent was to have a folder in the project-specific code that didn't fit into `/src/util/` or any of the other server directories.
+
+This makes sense in a very literal sense, each file or subdirectory is a "module" in the sense that it's a self-contained, decoupled unit of code. The reason it's a bad name is because "module" is a _very_ overloaded term in the JavaScript world, and is thus ambiguous to the point of meaning the same thing as "helper" or "util".
+
+My solution is to rename it `/src/lib/lib/`. This is still not a great name, but it is at least (slightly) less ambiguous in the context of JS and means roughly the same thing. `lib` is also less characters.
+
+### 1 - AuthZ Admins and Super Users
+
+I want to avoid managing RBAC (Role-Based Access Control) via manual database operations as much as possible. I'd actually like to avoid _most manual database operations._ This presents an issue when the database initializes - there is no user with sufficient access to perform administrative operations via the API.
+
+To solve this I will designate a special user name; when this user is created, it will automatically be assigned a role with elevated permissions.
+
+The user will:
+
+1. (probably) be the only user with the elevated role
+1. be created close in time to when the server starts for the first time
+1. be only accessible to server admins (me)
+
+Via [KISS](https://en.wikipedia.org/wiki/KISS_principle), I'll probably name the user `ezd_admin` and the role... `SuperUser` or `ServerAdmin`.
+
+## [08/30/2025]
+
+### 1 - Authorization (AuthZ), Roles
+
+I've read multiple sources that indicate assigning a single role to a user is a design flaw. The recommended approach appears to be a many-to-many relationship between users and roles, and a many-to-many relationship between roles and permissions.
+
+This is obvious now that I am thinking about it more deeply based on my experience with identity systems. It may be overkill for my use-case; I'm currently considering a superuser/admin type, and all other users, but I don't see any reason not to consider a better design at this stage.
+
+There's likely _a lot_ of prior art on the topic; if I can I will find something standard and well-defined to follow to avoid reinventing the wheel here.
+
+see:
+- [geeksforgeeks article on identity management](https://www.geeksforgeeks.org/dbms/how-to-design-a-database-for-identity-management-systems/)
+- [stackoverflow comment on role/permission management](https://stackoverflow.com/a/12991742/4677252)
+- https://vertabelo.com/blog/user-authentication-module/
+
+## [08/29/2025]
+
+### 2 - Authentication (AuthN) (pt. 2)
+
+I have considered my AuthN strategy again after doing a lot of research & tinkering. Some conclusions:
+
+1. JWT alone doesn't get me much because I want _session invalidation_. Because I require a call to the DB to check if a token is valid or not, JWTs will mainly add overhead
+1. While I don't like cookies, they are standard and have security features.
+    1. TLS when used with https
+    1. CORS
+
+I still don't relish cookies and session ids as the _only_ authentication mechanism. This is not based on any security principle I could find a source for; additional security mechanisms that I've considered only add [security through obscurity](https://en.wikipedia.org/wiki/Security_through_obscurity). It's all predicated on TLS guarantees.
+
+Still, I would like the ability to use api tokens. For this purpose, JWT is just as good as any other type of token for my purposes.
+
+some links:
+- [auth0 jwt-decode library](https://github.com/auth0/jwt-decode/blob/main/lib/index.ts)
+    - good typescript type reference
+- [auth0 node-jsonwebtoken library](https://github.com/auth0/node-jsonwebtoken/blob/master/sign.js)
+    - reference implementation
+
+### 1 - Authentication (AuthN)
+
+I found [this comment on reddit](https://www.reddit.com/r/rust/comments/11fqt51/comment/jalvfys/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button) to be informative on jwt auth vs. session auth.
+
 ## [08/26/2025]
 
 ### 1.1 - Authentication (AuthN) (pt. 2)

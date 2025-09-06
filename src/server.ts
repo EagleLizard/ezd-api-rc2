@@ -38,8 +38,16 @@ export async function initServer() {
       // maxAge: cookie_max_age_days * 24 * 60 * 60 * 1000,
       maxAge: cookie_max_age_ms,
       secure: 'auto',
-      httpOnly: false,
+      // httpOnly: false,
+      httpOnly: true,
     },
+  });
+  /* TODO: move to middleware module _*/
+  app.addHook('preHandler', (req, rep, done) => {
+    /* decorate session _*/
+    req.session.ip = req.ip;
+    req.session.userAgent = req.headers['user-agent'];
+    done();
   });
 
   // app.addHook('onSend', (req, rep, payload: unknown, done) => {

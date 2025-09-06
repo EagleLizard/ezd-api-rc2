@@ -9,6 +9,7 @@ const ezdConfig = {
   EZD_PORT: getNumberEnvVar('EZD_PORT'),
   EZD_WEB_ORIGIN: getEnvVarOrErr('EZD_WEB_ORIGIN'),
   SESSION_SECRET: getEnvVarOrErr('SESSION_SECRET'),
+  EZD_JWT_SECRET: getEnvVarOrErr('EZD_JWT_SECRET'),
 
   POSTGRES_HOST: getEnvVarOrErr('POSTGRES_HOST'),
   POSTGRES_PORT: getNumberEnvVar('POSTGRES_PORT'),
@@ -17,6 +18,9 @@ const ezdConfig = {
   POSTGRES_DB: getEnvVarOrErr('POSTGRES_DB'),
 
   EZD_SESSION_ID_NAME: 'ezdSeshId',
+  EZD_SUPER_USER_USERNAME: 'ezd_admin',
+  EZD_DEFAULT_ROLE_NAME: 'Default',
+  EZD_SUPER_USER_ROLE_NAME: 'ServerAdmin',
 
   isDevEnv: isDevEnv,
 } as const;

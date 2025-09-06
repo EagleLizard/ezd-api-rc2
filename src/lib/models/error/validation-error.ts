@@ -3,6 +3,7 @@
 2024 writeup reference: https://medium.com/@Nelsonalfonso/understanding-custom-errors-in-typescript-a-complete-guide-f47a1df9354c
 _*/
 
+/* TODO: extend EzdError class _*/
 export class ValidationError extends Error {
   public readonly code: string;
   constructor(message: string, options?: ErrorOptions) {

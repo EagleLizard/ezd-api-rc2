@@ -1,4 +1,40 @@
 
+
+- auth
+  - authZ
+  - login
+    - login attempts
+    - account recovery/reset password
+  - jwt
+    - implement own sign/verify (no dependency)
+
+09/03/2025
+- auth
+  - authZ
+  - login
+    - login attempts
+    - account recovery/reset password
+  - jwt
+    - implement own sign/verify (no dependency)
+
+08/28/2025
+- auth
+  - authZ
+  - jwt
+
+08/27/2025
+-[x] users
+  -[x] db tables
+    -[x] user
+    -[x] password
+    -[x] role
+  -[x] register
+  -[x] login
+- auth
+  -[x] authN
+  - authZ
+  - jwt
+
 08/17/2025
 - users
   - db tables

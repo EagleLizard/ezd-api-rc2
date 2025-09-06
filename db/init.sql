@@ -6,6 +6,9 @@ create table session (
   sesh json NOT NULL,
   expire TIMESTAMP NOT NULL,
 
+  ip_addr TEXT NOT NULL,
+  user_agent TEXT,
+
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -18,6 +21,8 @@ create table user_role (
   modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- super user
+insert into user_role (role_name) values('ServerAdmin');
 -- the default role
 insert into user_role (role_name) values('Default');
 
@@ -26,7 +31,16 @@ create table users (
   user_name TEXT NOT NULL UNIQUE,
   email TEXT NOT NULL UNIQUE,
 
-  role_id INT references user_role(role_id) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+create table users_user_role (
+  users_user_role_id SERIAL PRIMARY KEY,
+
+  user_id INT references users(user_id) ON DELETE CASCADE,
+  role_id INT references user_role(role_id) ON DELETE CASCADE,
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -38,6 +52,23 @@ create table password (
   salt TEXT NOT NULL,
 
   user_id INT references users(user_id) ON DELETE CASCADE,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- AuthN
+/*
+created when a user logs in
+ */
+create table user_session (
+  user_login_id SERIAL PRIMARY KEY,
+
+  user_id INT references users(user_id) ON DELETE CASCADE,
+  session_id TEXT references session(sid) ON DELETE CASCADE,
+  UNIQUE(user_id, session_id),
+  -- used to invalidate authenticated sessions
+  valid BOOLEAN NOT NULL DEFAULT TRUE,
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

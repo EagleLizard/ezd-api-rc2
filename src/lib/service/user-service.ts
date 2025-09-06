@@ -1,4 +1,6 @@
 
+import { FastifySessionObject } from '@fastify/session';
+
 import { inputFormats } from '../../util/input-formats';
 import { userRepo } from '../db/user-repo';
 import { ValidationError } from '../models/error/validation-error';
@@ -6,15 +8,30 @@ import { PasswordDto } from '../models/password-dto';
 import { RegisterUserBody } from '../models/register-user-body';
 import { UserDto } from '../models/user-dto';
 import { NotFoundEzdError } from '../models/error/not-found-ezd-error';
-import { authUtil } from '../module/auth-util';
+import { authUtil } from '../lib/auth-util';
 import { EzdError } from '../models/error/ezd-error';
 import { ezdErrorCodes } from '../models/error/ezd-error-codes';
+import { authRepo } from '../db/auth-repo';
+import { PgClient } from '../db/pg-client';
 
 export const userService = {
+  logInUser: logInUser,
   registerUser: registerUser,
   getUserByName: getUserByName,
   checkUserPassword: checkUserPassword,
 } as const;
+
+async function logInUser(user: UserDto, session: FastifySessionObject) {
+  /*
+  1. check if the user is already logged in (?)
+  2. create a user session / login entity
+  _*/
+  await authRepo.insertUserSession(PgClient, user.user_id, session.sessionId);
+  // await authRepo.insertUserSession(PgClient, user.user_id, 'not an id');
+  console.log(user);
+  console.log(session.sessionId);
+  console.log(session.cookie.expires);
+}
 
 async function getUserByName(userName: string) {
   return userRepo.getUserByName(userName);

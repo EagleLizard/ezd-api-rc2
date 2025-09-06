@@ -55,10 +55,11 @@ function deleteSession(sid: string) {
 
 async function insertSession(sid: string, sesh: Fastify.Session, expireTime: number) {
   let queryStr: string;
-  let queryParams: [ string, string, number ];
+  let queryParams: [ string, string, number, string, string|undefined ];
   let queryRes: QueryResult;
   queryStr = `
-    insert into session (sid, sesh, expire) select $1, $2, to_timestamp($3)
+    insert into session
+      (sid, sesh, expire, ip_addr, user_agent) select $1, $2, to_timestamp($3), $4, $5
       on conflict (sid) do update set sesh=$2, expire=to_timestamp($3)
     returning sid
   `;
@@ -66,6 +67,8 @@ async function insertSession(sid: string, sesh: Fastify.Session, expireTime: num
     sid,
     JSON.stringify(sesh),
     expireTime,
+    sesh.ip,
+    sesh.userAgent,
   ];
   queryRes = await PgClient.query(queryStr, queryParams);
   return queryRes;
@@ -112,6 +115,8 @@ function seshDtoToFastifySession(seshDto: SessionDto): Fastify.Session {
   ;
   fSesh = {
     ...seshDto.sesh,
+    ip: seshDto.ip_addr,
+    userAgent: seshDto.user_agent ?? undefined,
     cookie: {
       ...seshDto.sesh.cookie,
       expires: cookieExpiresVal,

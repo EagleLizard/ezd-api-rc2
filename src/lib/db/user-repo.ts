@@ -6,7 +6,9 @@ import { PgClient } from './pg-client';
 import { UserRoleDto, UserRoleDtoSchema } from '../models/user-role-dto';
 import { PasswordDto, PasswordDtoSchema } from '../models/password-dto';
 import { UserDto, UserDtoSchema } from '../models/user-dto';
-import { authUtil } from '../module/auth-util';
+import { authUtil } from '../lib/auth-util';
+import { EzdError } from '../models/error/ezd-error';
+import { ezdConfig } from '../config';
 
 const pw_keylen = 64;
 const pw_cost = 2**17;
@@ -40,18 +42,14 @@ async function createUser(userName: string, email: string, password: string) {
   1. create user in users table
   2. create password in password table
   _*/
-  let roleDto: UserRoleDto | undefined;
-  let userId: number;
-  let passwordId: number;
+  let userDto: UserDto;
   let txnClient = await PgClient.initClient();
   try {
     await txnClient.query('BEGIN');
-    roleDto = await getRoleByName('Default');
-    if(roleDto === undefined) {
-      throw new Error('Error getting user_role');
-    }
-    userId = await insertUser(txnClient, userName, email, roleDto.role_id);
-    passwordId = await insertPassword(txnClient, userId, password);
+
+    userDto = await insertUser(txnClient, userName, email);
+    await insertPassword(txnClient, userDto.user_id, password);
+    await createUserUserRole(txnClient, userDto);
 
     await txnClient.query('COMMIT');
   } catch(e) {
@@ -63,23 +61,59 @@ async function createUser(userName: string, email: string, password: string) {
   }
 }
 
+/* intended for initial user creation _*/
+async function createUserUserRole(pgClient: PgClient, userDto: UserDto) {
+  let roleDto: UserRoleDto | undefined;
+  let roleName: string;
+  let queryStr: string;
+  let colNames: string[];
+  let colNamesStr: string;
+  let colNumsStr: string;
+  let queryVals: [ number, number ];
+  let queryRes: QueryResult;
+  roleName = (userDto.user_name === ezdConfig.EZD_SUPER_USER_USERNAME)
+    ? ezdConfig.EZD_SUPER_USER_ROLE_NAME
+    : ezdConfig.EZD_DEFAULT_ROLE_NAME
+  ;
+  roleDto = await getRoleByName(roleName);
+  if(roleDto === undefined) {
+    throw new EzdError(`Error getting user_role: ${roleName}`);
+  }
+  colNames = [
+    'user_id',
+    'role_id'
+  ];
+  colNamesStr = colNames.join(', ');
+  colNumsStr = colNames.map((_, idx) => `$${idx + 1}`).join(', ');
+  queryStr = `
+    insert into users_user_role (${colNamesStr}) values(${colNumsStr}) returning *
+  `;
+  queryVals = [
+    userDto.user_id,
+    roleDto.role_id,
+  ];
+  queryRes = await pgClient.query(queryStr, queryVals);
+  if(queryRes.rows.length < 1) {
+    throw new EzdError(`Error creating role '${roleName}' for user: ${userDto.user_name}`);
+  }
+}
+
 async function insertUser(
   pgClient: PgClient,
   userName: string,
   email: string,
-  roleId: number,
-): Promise<number> {
+): Promise<UserDto> {
   let queryStr: string;
-  let queryVals: [ string, string, number ];
+  let queryVals: [ string, string ];
   let colNames: string[];
   let colNamesStr: string;
   let colNumsStr: string;
   let queryRes: QueryResult;
+  let userDto: UserDto;
 
   colNames = [
     'user_name',
     'email',
-    'role_id',
   ];
   colNamesStr = colNames.join(', ');
   colNumsStr = colNames.map((_, idx) => `$${idx + 1}`).join(', ');
@@ -89,13 +123,16 @@ async function insertUser(
   queryVals = [
     userName,
     email,
-    roleId,
   ];
   queryRes = await pgClient.query(queryStr, queryVals);
-  if((typeof queryRes.rows[0]?.user_id) !== 'number') {
-    throw new Error(`Unable to create user: ${userName}`);
+  try {
+    userDto = UserDtoSchema.decode(queryRes.rows[0]);
+  } catch(e) {
+    throw new EzdError(`Unable to create user: ${userName}`, {
+      cause: e,
+    });
   }
-  return queryRes.rows[0].user_id;
+  return userDto;
 }
 
 async function getPasswordByUserId(userId: number): Promise<PasswordDto | undefined> {

@@ -10,6 +10,13 @@ const pgPool = new Pool({
   database: ezdConfig.POSTGRES_DB,
 });
 
+export type IPgClient = {
+  query: (
+    query: string | QueryConfig,
+    vals?: QueryConfigValues<unknown[]>,
+  ) => Promise<QueryResult>;
+};
+
 export class PgClient {
   private _client: PoolClient;
   private constructor(_client: PoolClient) {
