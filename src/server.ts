@@ -9,7 +9,7 @@ import { registerPublicRoutes } from './routes';
 import { ezdConfig } from './lib/config';
 import { EzdSessionStore } from './lib/middleware/ezd-session-store';
 
-const cookie_max_age_days = 14;
+const cookie_max_age_days = 7;
 
 const cookie_max_age_ms = cookie_max_age_days * 24 * 60 * 60 * 1000;
 

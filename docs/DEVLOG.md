@@ -4,6 +4,12 @@ This document exists to track tasks & thoughts in lieu of a task management syst
 
 The format is roughly reverse-chronological by date.
 
+## [09/16/2025]
+
+### 1 - Simplifying session-based login
+
+Current I have a table to relate sessionIds and userIds to create a logged-in relationship. This may be overcomplicated for what I am trying to do. Instead, I can try adding a column for userId to the session table, and if I want to keep sessions for users who are not logged in it can be nullable.
+
 ## [09/01/2025]
 
 ### 2 - `/src/lib/module/` is a bad name imo

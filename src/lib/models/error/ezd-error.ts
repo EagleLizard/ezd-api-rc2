@@ -7,6 +7,7 @@ Intended as a superclass, but can be used without extending
 _*/
 export class EzdError extends Error {
   public readonly code: string;
+  public readonly ezdMsg: string;
   constructor(message?: string, code?: string)
   constructor(message?: string, options?: ErrorOptions)
   constructor(message?: string, code?: string, options?: ErrorOptions)
@@ -21,6 +22,8 @@ export class EzdError extends Error {
     this.name = 'EzdError';
     Object.setPrototypeOf(this, EzdError.prototype);
     this.code = code ?? ezdErrorCodes.DEFAULT;
-    this.message = `${this.code}: ${this.message}`;
+    this.ezdMsg = this.message;
+    /* for logging: include code and message _*/
+    this.message = `${this.code}: ${this.ezdMsg}`;
   }
 }

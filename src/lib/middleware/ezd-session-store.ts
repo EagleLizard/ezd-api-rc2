@@ -60,7 +60,10 @@ async function insertSession(sid: string, sesh: Fastify.Session, expireTime: num
   queryStr = `
     insert into session
       (sid, sesh, expire, ip_addr, user_agent) select $1, $2, to_timestamp($3), $4, $5
-      on conflict (sid) do update set sesh=$2, expire=to_timestamp($3)
+      on conflict (sid) do update set
+        sesh=$2,
+        expire=to_timestamp($3),
+        modified_at=CURRENT_TIMESTAMP
     returning sid
   `;
   queryParams = [

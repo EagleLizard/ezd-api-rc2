@@ -34,7 +34,7 @@ async function insertUserSession(
   try {
     queryRes = await pgClient.query(queryStr, queryVals);
   } catch(e) {
-    throw new EzdError('Error inserting session', ezdErrorCodes.DB_ERROR, {
+    throw new EzdError('Error inserting user_session', ezdErrorCodes.DB_ERROR, {
       cause: e,
     });
   }
