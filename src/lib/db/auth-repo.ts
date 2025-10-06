@@ -4,10 +4,30 @@ import { UserDto } from '../models/user-dto';
 import { IPgClient } from './pg-client';
 import { EzdError } from '../models/error/ezd-error';
 import { ezdErrorCodes } from '../models/error/ezd-error-codes';
+import { SessionDto, SessionDtoSchema } from '../models/session-dto';
 
 export const authRepo = {
+  getSession: getSession,
   insertUserSession: insertUserSession,
 } as const;
+
+async function getSession(pgClient: IPgClient, sid: string): Promise<SessionDto | undefined> {
+  let queryStr: string;
+  let queryParams: [ string ];
+  let sessionDto: SessionDto;
+  let queryRes: QueryResult;
+  queryStr = `
+    select * from session s
+      where s.sid = $1
+  `;
+  queryParams = [ sid ];
+  queryRes = await pgClient.query(queryStr, queryParams);
+  if(queryRes.rows[0] === undefined) {
+    return undefined;
+  }
+  sessionDto = SessionDtoSchema.decode(queryRes.rows[0]);
+  return sessionDto;
+}
 
 async function insertUserSession(
   pgClient: IPgClient,

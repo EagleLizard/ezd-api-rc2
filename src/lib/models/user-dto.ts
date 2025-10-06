@@ -14,6 +14,8 @@ const UserDtoTSchema = Type.Object({
 export type UserDto = Static<typeof UserDtoTSchema>;
 
 export const UserDtoSchema = {
+  schema: UserDtoTSchema,
+
   decode: decodeUserDto,
 } as const;
 

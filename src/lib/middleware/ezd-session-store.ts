@@ -5,6 +5,7 @@ import { SessionDto, SessionDtoSchema } from '../models/session-dto';
 import { PgClient } from '../db/pg-client';
 import { QueryResult } from 'pg';
 import { prim } from '../../util/validate-primitives';
+import { UserDto } from '../models/user-dto';
 
 const ONE_DAY_SECS = 60 * 60 * 24;
 /*
@@ -55,23 +56,29 @@ function deleteSession(sid: string) {
 
 async function insertSession(sid: string, sesh: Fastify.Session, expireTime: number) {
   let queryStr: string;
-  let queryParams: [ string, string, number, string, string|undefined ];
+  let queryParams: [
+    string, string, number, string, string|undefined, UserDto['user_id']|undefined
+  ];
   let queryRes: QueryResult;
   queryStr = `
     insert into session
-      (sid, sesh, expire, ip_addr, user_agent) select $1, $2, to_timestamp($3), $4, $5
+      (sid, sesh, expire, ip_addr, user_agent, user_id) select $1, $2, to_timestamp($3), $4, $5, $6
       on conflict (sid) do update set
         sesh=$2,
         expire=to_timestamp($3),
-        modified_at=CURRENT_TIMESTAMP
+        modified_at=CURRENT_TIMESTAMP,
+        user_id=$6
     returning sid
   `;
   queryParams = [
     sid,
-    JSON.stringify(sesh),
+    JSON.stringify({
+      cookie: sesh.cookie,
+    }),
     expireTime,
     sesh.ip,
     sesh.userAgent,
+    sesh.user_id,
   ];
   queryRes = await PgClient.query(queryStr, queryParams);
   return queryRes;
@@ -117,7 +124,7 @@ function seshDtoToFastifySession(seshDto: SessionDto): Fastify.Session {
     : undefined
   ;
   fSesh = {
-    ...seshDto.sesh,
+    user_id: seshDto.user_id ?? undefined,
     ip: seshDto.ip_addr,
     userAgent: seshDto.user_agent ?? undefined,
     cookie: {

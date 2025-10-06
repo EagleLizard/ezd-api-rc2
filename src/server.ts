@@ -5,9 +5,10 @@ import fastifyCookie from '@fastify/cookie';
 import fastifySession from '@fastify/session';
 
 import { logger } from './lib/logger/logger';
-import { registerPublicRoutes } from './routes';
+import { registerAuthNRoutes, registerPublicRoutes } from './routes';
 import { ezdConfig } from './lib/config';
 import { EzdSessionStore } from './lib/middleware/ezd-session-store';
+import { authHooks } from './lib/middleware/auth-hooks';
 
 const cookie_max_age_days = 7;
 
@@ -42,6 +43,8 @@ export async function initServer() {
       httpOnly: true,
     },
   });
+
+  app.decorateRequest('ctx');
   /* TODO: move to middleware module _*/
   app.addHook('preHandler', (req, rep, done) => {
     /* decorate session _*/
@@ -50,14 +53,25 @@ export async function initServer() {
     done();
   });
 
-  // app.addHook('onSend', (req, rep, payload: unknown, done) => {
-  //   // console.log(req.session);
-  //   // console.log(req.cookies);
-  //   done();
-  // });
+  app.addHook('onRequest', (req, rep, done) => {
+    /*
+      set request context defaults
+    _*/
+    req.ctx ??= {};
+    done();
+  });
 
   /* public routes _*/
   registerPublicRoutes(app);
+
+  /* authenticated routes _*/
+  app.register((fastify, opts, done) => {
+    // fastify.addHook('preHandler', authHooks.authNPreHandler);
+    fastify.addHook('onRequest', authHooks.authNPreHandler);
+    registerAuthNRoutes(fastify);
+    done();
+  });
+
   host = ezdConfig.EZD_HOST;
   port = ezdConfig.EZD_PORT;
 

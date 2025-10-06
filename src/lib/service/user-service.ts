@@ -17,6 +17,7 @@ import { PgClient } from '../db/pg-client';
 export const userService = {
   logInUser: logInUser,
   registerUser: registerUser,
+  getUserById: getUserById,
   getUserByName: getUserByName,
   checkUserPassword: checkUserPassword,
 } as const;
@@ -27,10 +28,10 @@ async function logInUser(user: UserDto, session: FastifySessionObject) {
   2. create a user session / login entity
   _*/
   await authRepo.insertUserSession(PgClient, user.user_id, session.sessionId);
-  // await authRepo.insertUserSession(PgClient, user.user_id, 'not an id');
-  console.log(user);
-  console.log(session.sessionId);
-  console.log(session.cookie.expires);
+}
+
+async function getUserById(userId: UserDto['user_id']) {
+  return userRepo.getUserById(PgClient, userId);
 }
 
 async function getUserByName(userName: string) {

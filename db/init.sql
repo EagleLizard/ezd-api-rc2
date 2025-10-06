@@ -1,18 +1,6 @@
 
 CREATE EXTENSION pgcrypto;
 
-create table session (
-  sid TEXT PRIMARY KEY NOT NULL UNIQUE,
-  sesh json NOT NULL,
-  expire TIMESTAMP NOT NULL,
-
-  ip_addr TEXT NOT NULL,
-  user_agent TEXT,
-
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 create table user_role (
   role_id SERIAL PRIMARY KEY,
   role_name TEXT NOT NULL UNIQUE,
@@ -35,6 +23,19 @@ create table users (
   modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+create table session (
+  sid TEXT PRIMARY KEY NOT NULL UNIQUE,
+  sesh json NOT NULL,
+  expire TIMESTAMP NOT NULL,
+
+  user_id INT references users(user_id) ON DELETE SET NULL,
+
+  ip_addr TEXT NOT NULL,
+  user_agent TEXT,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 create table users_user_role (
   users_user_role_id SERIAL PRIMARY KEY,
@@ -58,18 +59,3 @@ create table password (
 );
 
 -- AuthN
-/*
-created when a user logs in
- */
-create table user_session (
-  user_login_id SERIAL PRIMARY KEY,
-
-  user_id INT references users(user_id) ON DELETE CASCADE,
-  session_id TEXT references session(sid) ON DELETE CASCADE,
-  UNIQUE(user_id, session_id),
-  -- used to invalidate authenticated sessions
-  valid BOOLEAN NOT NULL DEFAULT TRUE,
-
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);

@@ -6,7 +6,7 @@ import { UserDto } from '../../lib/models/user-dto';
 import { EzdError } from '../../lib/models/error/ezd-error';
 import { ezdErrorCodes } from '../../lib/models/error/ezd-error-codes';
 
-export type PostUserLoginRequest = {
+type PostUserLoginRequest = {
   Body: {
     userName?: string;
     password?: string;
@@ -16,7 +16,9 @@ export type PostUserLoginRequest = {
       code?: string;
       message?: string;
     };
-    200?: unknown;
+    200?: {
+      user: UserDto
+    };
   }
 };
 
@@ -54,21 +56,13 @@ export async function postUserLogin(
     res.status(401);
     return;
   }
-  /*
-  Check if user has a session login already
-    If not, create one
-  _*/
-  if(!req.session.isSaved()) {
-    /*
-    The login db entry has a dependency on the session entity, so make sure it's saved.
-      By default fastify/session saves _after_ the response is sent.
-    _*/
-    await req.session.save();
-  }
-  let loginRes = await userService.logInUser(user, req.session);
+  req.session.user_id = user.user_id;
   /*
   TODO: return valid session info. Like JWT.
   _*/
-  res.status(200).send();
+  res.setCookie('ezd_user', user.user_name);
+  res.status(200).send({
+    user: user,
+  });
   return res;
 }

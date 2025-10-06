@@ -4,6 +4,18 @@ This document exists to track tasks & thoughts in lieu of a task management syst
 
 The format is roughly reverse-chronological by date.
 
+## [10/01/2025]
+
+### 2 - Static Sites with Astro
+
+I saw [Astro](https://astro.build/) recommended by [CJ Reynolds from syntax.fm](https://github.com/w3cj). I like a lot of the concepts and according to the website it supports non-dynamic html templating by default. I am not sure whether this should go in this repository or my [`ezd-web-rc1`](https://github.com/EagleLizard/ezd-web-rc1) project.
+
+### 1 - Structuring  HTML
+
+I'm following documentation on writing well-structured HTML files, as well as referencing existing blogs/websites.
+
+1. [MDN reference on structuring documents](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Structuring_content/Structuring_documents)
+
 ## [09/16/2025]
 
 ### 1 - Simplifying session-based login

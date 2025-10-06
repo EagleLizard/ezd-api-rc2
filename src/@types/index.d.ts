@@ -2,16 +2,18 @@
 import '@fastify/session';
 import '@fastify/cookie';
 import { Session } from 'fastify';
+import { UserDto } from '../lib/models/user-dto';
+import { RequestContext } from '../lib/models/request-context';
 
 /* extend fastify types */
 declare module 'fastify' {
   interface Session {
     ip: string;
     userAgent?: string;
-    /*
-    This is not provided in the typescript types, but exists and is defined
-      in the documentation
-    _*/
-    isSaved: () => boolean;
+    user_id?: UserDto['user_id'];
+  }
+  interface FastifyRequest {
+    // user?: UserDto;
+    ctx: RequestContext;
   }
 }

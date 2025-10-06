@@ -2,7 +2,7 @@
 import crypto from 'node:crypto';
 
 import { QueryResult } from 'pg';
-import { PgClient } from './pg-client';
+import { IPgClient, PgClient } from './pg-client';
 import { UserRoleDto, UserRoleDtoSchema } from '../models/user-role-dto';
 import { PasswordDto, PasswordDtoSchema } from '../models/password-dto';
 import { UserDto, UserDtoSchema } from '../models/user-dto';
@@ -16,9 +16,30 @@ const pw_block_size = 8;
 
 export const userRepo = {
   createUser: createUser,
+  getUserById: getUserById,
   getUserByName: getUserByName,
   getPasswordByUserId: getPasswordByUserId,
 } as const;
+
+async function getUserById(
+  pgClient: IPgClient,
+  userId: UserDto['user_id']
+): Promise<UserDto | undefined> {
+  let userDto: UserDto;
+  let queryStr: string;
+  let queryRes: QueryResult;
+  queryStr = `
+    select * from users u
+      where u.user_id = $1
+    limit 1
+  `;
+  queryRes = await pgClient.query(queryStr, [ userId ]);
+  if(queryRes.rows[0] === undefined) {
+    return undefined;
+  }
+  userDto = UserDtoSchema.decode(queryRes.rows[0]);
+  return userDto;
+}
 
 async function getUserByName(userName: string): Promise<UserDto | undefined> {
   let userDto: UserDto;
@@ -99,7 +120,7 @@ async function createUserUserRole(pgClient: PgClient, userDto: UserDto) {
 }
 
 async function insertUser(
-  pgClient: PgClient,
+  pgClient: IPgClient,
   userName: string,
   email: string,
 ): Promise<UserDto> {
