@@ -8,9 +8,9 @@ test-reports
 stats.html
 data
 .env
-# package-lock.json
 data
 build
 logs
+extern-tmp
 
 ezd_api_pg_db_data

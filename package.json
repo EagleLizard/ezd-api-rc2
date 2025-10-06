@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node dist/main.js",
     "dev": "node --watch dist/main.js",
+    "build:mime": "node dist/scripts/gen-mime-types.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
