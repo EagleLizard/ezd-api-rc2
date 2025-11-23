@@ -1,15 +1,13 @@
 
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { UserDto } from '../../lib/models/user-dto';
+import { UserInfo } from '../../lib/models/user-info';
 
 type GetWhoamiRequest = {
   Reply: {
     401?: undefined;
     200: {
-      user: {
-        username: UserDto['user_name'];
-        email: UserDto['email'];
-      };
+      user: UserInfo,
     };
   };
 };
@@ -26,10 +24,7 @@ export async function getWhoamiCtrl(
   user = req.ctx.user;
 
   res.status(200).send({
-    user: {
-      username: user.user_name,
-      email: user.email,
-    },
+    user: user,
   });
   return res;
 }

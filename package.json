@@ -22,7 +22,7 @@
   "devDependencies": {
     "@eslint/js": "^9.33.0",
     "@stylistic/eslint-plugin": "^5.2.3",
-    "@types/node": "^22.17.1",
+    "@types/node": "^22.18.9",
     "@types/pg": "^8.15.5",
     "eslint": "^9.33.0",
     "typescript": "^5.9.2",

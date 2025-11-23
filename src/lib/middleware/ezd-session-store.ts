@@ -142,8 +142,8 @@ function getExpireTime(sesh: Fastify.Session): number {
     (sesh?.cookie?.expires === undefined)
     || (sesh?.cookie?.expires === null)
   )
-    ? Math.ceil((Date.now() / 1000) + SESSION_EXPIRE_DEFAULT)
-    : Math.ceil(
+    ? Math.floor((Date.now() / 1000) + SESSION_EXPIRE_DEFAULT)
+    : Math.floor(
       (new Date(sesh.cookie.expires)).valueOf() / 1000
     )
   ;

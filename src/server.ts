@@ -46,7 +46,7 @@ export async function initServer() {
 
   app.decorateRequest('ctx');
   /* TODO: move to middleware module _*/
-  app.addHook('preHandler', (req, rep, done) => {
+  app.addHook('onRequest', (req, rep, done) => {
     /* decorate session _*/
     req.session.ip = req.ip;
     req.session.userAgent = req.headers['user-agent'];
