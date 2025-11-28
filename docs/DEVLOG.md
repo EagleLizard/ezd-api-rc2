@@ -4,6 +4,12 @@ This document exists to track tasks & thoughts in lieu of a task management syst
 
 The format is roughly reverse-chronological by date.
 
+## [11/28/2025]
+
+### Nginx NodeJS Proxy
+
+Blog post: [Setup nginx as Reverse Proxy for Node.js app under a subpath](https://rumaan.dev/blog/nginx-proxy-node-subpath)
+
 ## [10/01/2025]
 
 ### 2 - Static Sites with Astro

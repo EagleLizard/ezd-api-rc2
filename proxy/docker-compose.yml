@@ -1,0 +1,23 @@
+services:
+  nginx:
+    container_name: ezd_api_nginx
+    image: nginx:latest
+    restart: unless-stopped
+    ports:
+      - ${EZD_PORT}:80
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      # - ./jcd-web/dist:/var/www/jcd-web:ro
+    logging:
+      driver: "local"
+      options:
+        max-size: 128m
+  ezd-api-cloudflare-tunnel:
+    container_name: ezd_api_cloudflare_tunnel
+    image: cloudflare/cloudflared
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN_EZD_API_MBP}
+    volumes:
+      - ${HOME_BASE_DIR}/ezd-api-cloudflare-tunnel/config:/etc/cloudflared

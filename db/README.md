@@ -55,3 +55,23 @@ vite will live-reload html by default, run:
 ```sh
 npx vite serve ./static
 ```
+
+# Cloudflare Proxy
+
+Navigate to the proxy directory
+
+```sh
+cd proxy
+```
+
+Start:
+
+```sh
+docker compose up -d --build --no-deps --force-recreate
+```
+
+Stop:
+
+```sh
+docker compose down --rmi all --remove-orphans
+```

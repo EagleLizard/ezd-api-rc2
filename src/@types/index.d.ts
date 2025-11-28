@@ -1,7 +1,8 @@
 
 import '@fastify/session';
 import '@fastify/cookie';
-import { Session } from 'fastify';
+import type * as Fastify from 'fastify';
+// import { Session, FastifyRequest } from 'fastify';
 import { UserDto } from '../lib/models/user-dto';
 import { RequestContext } from '../lib/models/request-context';
 
