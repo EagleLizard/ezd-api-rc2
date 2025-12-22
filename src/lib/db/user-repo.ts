@@ -9,10 +9,7 @@ import { UserDto, UserDtoSchema } from '../models/user-dto';
 import { authUtil } from '../lib/auth-util';
 import { EzdError } from '../models/error/ezd-error';
 import { ezdConfig } from '../config';
-
-const pw_keylen = 64;
-const pw_cost = 2**17;
-const pw_block_size = 8;
+import { idGen } from '../lib/id-gen';
 
 export const userRepo = {
   createUser: createUser,
@@ -90,7 +87,7 @@ async function createUserUserRole(pgClient: PgClient, userDto: UserDto) {
   let colNames: string[];
   let colNamesStr: string;
   let colNumsStr: string;
-  let queryVals: [ number, number ];
+  let queryVals: [ string, number ];
   let queryRes: QueryResult;
   roleName = (userDto.user_name === ezdConfig.EZD_SUPER_USER_USERNAME)
     ? ezdConfig.EZD_SUPER_USER_ROLE_NAME
@@ -125,7 +122,7 @@ async function insertUser(
   email: string,
 ): Promise<UserDto> {
   let queryStr: string;
-  let queryVals: [ string, string ];
+  let queryVals: [ userId: string, string, string ];
   let colNames: string[];
   let colNamesStr: string;
   let colNumsStr: string;
@@ -133,6 +130,7 @@ async function insertUser(
   let userDto: UserDto;
 
   colNames = [
+    'user_id',
     'user_name',
     'email',
   ];
@@ -141,7 +139,9 @@ async function insertUser(
   queryStr = `
     insert into users (${colNamesStr}) values(${colNumsStr}) returning *
   `;
+  let userId: string = idGen.rd2();
   queryVals = [
+    userId,
     userName,
     email,
   ];
@@ -156,7 +156,7 @@ async function insertUser(
   return userDto;
 }
 
-async function getPasswordByUserId(userId: number): Promise<PasswordDto | undefined> {
+async function getPasswordByUserId(userId: string): Promise<PasswordDto | undefined> {
   let passwordDto: PasswordDto;
   let queryStr: string;
   let queryRes: QueryResult;
@@ -178,9 +178,9 @@ async function getPasswordByUserId(userId: number): Promise<PasswordDto | undefi
 via owasp, scrypt is good: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
 related reddit thread: https://www.reddit.com/r/node/comments/17m8b4p/best_node_hashing_algorithm_option/
 _*/
-async function insertPassword(pgClient: PgClient, userId: number, password: string) {
+async function insertPassword(pgClient: PgClient, userId: string, password: string) {
   let queryStr: string;
-  let queryVals: [ string, string, number ];
+  let queryVals: [ string, string, string ];
   let colNames: string[];
   let colNamesStr: string;
   let colNumsStr: string;
@@ -215,25 +215,6 @@ async function insertPassword(pgClient: PgClient, userId: number, password: stri
   passwordDto = PasswordDtoSchema.decode(queryRes.rows[0]);
 
   return passwordDto.password_id;
-}
-
-async function getPasswordHash(password: string, salt: string): Promise<string> {
-  let passwordHash: string;
-  let pwHashPromise: Promise<Buffer<ArrayBufferLike>>;
-  pwHashPromise = new Promise((resolve, reject) => {
-    crypto.scrypt(password, salt, pw_keylen, {
-      cost: pw_cost,
-      blockSize: pw_block_size,
-      maxmem: 129 * 1024 * 1024,
-    }, (err, derivedKey) => {
-      if(err) {
-        return reject(err);
-      }
-      resolve(derivedKey);
-    });
-  });
-  passwordHash = (await pwHashPromise).toString('base64');
-  return passwordHash;
 }
 
 async function getRoleByName(roleName: string): Promise<UserRoleDto | undefined> {

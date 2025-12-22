@@ -3,7 +3,7 @@ import { Type, Static } from '@sinclair/typebox';
 import { tbUtil } from '../../util/tb-util';
 
 const UserDtoTSchema = Type.Object({
-  user_id: Type.Integer(),
+  user_id: Type.String(),
   user_name: Type.String(),
   email: Type.String(),
 

@@ -14,7 +14,7 @@ export function userInfoPlug(app: FastifyInstance) {
     let headerIp: string | undefined;
     let reqIp: string;
     headerIp = getHeaderIp(req);
-    if(headerIp !== req.ip) {
+    if(headerIp !== undefined && headerIp !== req.ip) {
       app.log.info({
         headerIp: headerIp,
         requestIp: req.ip,

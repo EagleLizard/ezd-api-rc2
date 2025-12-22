@@ -7,7 +7,7 @@ const PasswordDtoTSchema = Type.Object({
   password_hash: Type.String(),
   salt: Type.String(),
 
-  user_id: Type.Integer(), // FK
+  user_id: Type.String(), // FK
 
   created_at: Type.Date(),
   modified_at: Type.Date(),

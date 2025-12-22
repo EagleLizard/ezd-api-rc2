@@ -15,7 +15,7 @@ insert into user_role (role_name) values('ServerAdmin');
 insert into user_role (role_name) values('Default');
 
 create table users (
-  user_id SERIAL PRIMARY KEY,
+  user_id TEXT NOT NULL UNIQUE PRIMARY KEY,
   user_name TEXT NOT NULL UNIQUE,
   email TEXT NOT NULL UNIQUE,
 
@@ -28,7 +28,7 @@ create table session (
   sesh json NOT NULL,
   expire TIMESTAMP NOT NULL,
 
-  user_id INT references users(user_id) ON DELETE SET NULL,
+  user_id TEXT references users(user_id) ON DELETE SET NULL,
 
   ip_addr TEXT NOT NULL,
   user_agent TEXT,
@@ -40,7 +40,7 @@ create table session (
 create table users_user_role (
   users_user_role_id SERIAL PRIMARY KEY,
 
-  user_id INT references users(user_id) ON DELETE CASCADE,
+  user_id TEXT references users(user_id) ON DELETE CASCADE,
   role_id INT references user_role(role_id) ON DELETE CASCADE,
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -52,7 +52,7 @@ create table password (
   password_hash TEXT NOT NULL,
   salt TEXT NOT NULL,
 
-  user_id INT references users(user_id) ON DELETE CASCADE,
+  user_id TEXT references users(user_id) ON DELETE CASCADE,
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

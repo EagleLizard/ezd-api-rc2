@@ -4,6 +4,19 @@ This document exists to track tasks & thoughts in lieu of a task management syst
 
 The format is roughly reverse-chronological by date.
 
+## [12/21/2025]
+
+### Generating unique IDs in Postgres
+
+Looking for ways to generate unique ids without using UUID.
+
+Generating unique string IDs in Postgres:
+* [How to generate a random, unique, alphanumeric ID of length N in Postgres 9.6+?](https://stackoverflow.com/a/41988979/4677252)
+* [PostgreSQL: How to generate a Random Token String?](https://www.dbrnd.com/2016/04/postgresql-how-to-generate-a-random-token-string/)
+* sdf
+
+
+
 ## [11/28/2025]
 
 ### Nginx NodeJS Proxy

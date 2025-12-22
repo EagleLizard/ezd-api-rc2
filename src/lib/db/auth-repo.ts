@@ -35,7 +35,6 @@ async function insertUserSession(
   sessionId: string
 ) {
   let queryVals: [ UserDto['user_id'], string ];
-  let queryRes: QueryResult;
   let colNames = [
     'user_id',
     'session_id'
@@ -52,7 +51,7 @@ async function insertUserSession(
     sessionId,
   ];
   try {
-    queryRes = await pgClient.query(queryStr, queryVals);
+    await pgClient.query(queryStr, queryVals);
   } catch(e) {
     throw new EzdError('Error inserting user_session', ezdErrorCodes.DB_ERROR, {
       cause: e,

@@ -9,8 +9,9 @@ import { postUserLogin } from './ctrl/users/user-auth-ctrl';
 import { getWhoamiCtrl } from './ctrl/users/whoami-ctrl';
 import { staticPlug } from './lib/middleware/static-plug/static-plug';
 import { BASE_DIR } from './lib/constants';
+import { getUserCtrl } from './ctrl/users/user-ctrl';
 
-export function registerPublicRoutes(app: FastifyInstance) {
+export function registerRoutes(app: FastifyInstance) {
   app.get('/health', getHealthCtrl);
 
   app.get('/', getIndexCtrl);
@@ -19,6 +20,8 @@ export function registerPublicRoutes(app: FastifyInstance) {
     dir: [ BASE_DIR, 'static' ].join(path.sep),
     prefix: '/v1/static/',
   });
+
+  app.get('/v1/user/:username', getUserCtrl);
 
   app.post('/v1/users/register', postRegisterUserCtrl);
   app.post('/v1/user/login', postUserLogin);
