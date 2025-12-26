@@ -13,8 +13,12 @@ import { EzdError } from '../models/error/ezd-error';
 import { ezdErrorCodes } from '../models/error/ezd-error-codes';
 import { authRepo } from '../db/auth-repo';
 import { PgClient } from '../db/pg-client';
+import { sessionRepo } from '../db/session-repo';
+import { UserLoginDto } from '../models/user-login-dto';
 
 export const userService = {
+  getLoggedInUser: getLoggedInUserBySid,
+  logoutUser: logoutUser,
   logInUser: logInUser,
   registerUser: registerUser,
   getUserById: getUserById,
@@ -22,12 +26,51 @@ export const userService = {
   checkUserPassword: checkUserPassword,
 } as const;
 
-async function logInUser(user: UserDto, session: FastifySessionObject) {
+async function getLoggedInUserBySid(sid: string): Promise<string | undefined> {
+  let userId: string | undefined;
+  userId = await authRepo.getUserIdFromLoginBySid(PgClient, sid);
+  console.log({ userId });
+  return userId;
+}
+
+async function logoutUser(sid: string, user: UserDto) {
+  return authRepo.logoutSession(PgClient, sid, user.user_id);
+}
+
+async function logInUser(user: UserDto, session: FastifySessionObject): Promise<UserLoginDto> {
   /*
-  1. check if the user is already logged in (?)
-  2. create a user session / login entity
+    check if login entry exists for current session.
+      If exists:
+        > update modified_at, expiry
+      If not exist:
+        > create new entry
   _*/
-  await authRepo.insertUserSession(PgClient, user.user_id, session.sessionId);
+  let dbSesh = await sessionRepo.getSession(PgClient, session.sessionId);
+  if(dbSesh === undefined) {
+    /*
+      If this is the first request, the session may not exist in the database
+        Save the session in this case before attempting user login insert.
+    _*/
+    await session.save();
+  }
+  /*
+    check if a login exists for the current user and session
+  _*/
+  let userLogin: UserLoginDto | undefined = await authRepo.getUserLogin(
+    PgClient,
+    user.user_id,
+    session.sessionId,
+  );
+  if(userLogin !== undefined) {
+    return userLogin;
+  }
+  userLogin = await authRepo.insertUserLogin(
+    PgClient,
+    user.user_id,
+    session.sessionId,
+    session.ip
+  );
+  return userLogin;
 }
 
 async function getUserById(userId: UserDto['user_id']) {

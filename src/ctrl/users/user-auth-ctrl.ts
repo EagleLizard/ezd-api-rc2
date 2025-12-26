@@ -53,16 +53,37 @@ export async function postUserLogin(
   }
   if(user === undefined) {
     /* invalid password _*/
-    res.status(401);
-    return;
+    return res.status(401).send();
   }
-  req.session.user_id = user.user_id;
-  /*
-  TODO: return valid session info. Like JWT.
-  _*/
+  await userService.logInUser(user, req.session);
+
   res.setCookie('ezd_user', user.user_name);
-  res.status(200).send({
+  return res.status(200).send({
     user: user,
   });
-  return res;
+}
+
+type PostUserLogoutRequest = {
+  Reply: {
+    401?: {
+      code?: string;
+      message?: string;
+    };
+    200?: {
+      user: UserDto
+    };
+  }
+};
+
+export async function postUserLogout(
+  req: FastifyRequest<PostUserLogoutRequest>,
+  res: FastifyReply<PostUserLogoutRequest>,
+) {
+  let user: UserDto | undefined;
+  user = req.ctx.user;
+  if(user === undefined) {
+    return res.status(401).send();
+  }
+  await userService.logoutUser(req.session.sessionId, user);
+  return res.status(200).send();
 }

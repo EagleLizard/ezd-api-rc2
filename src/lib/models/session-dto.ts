@@ -1,11 +1,9 @@
 
 import { Type, Static } from '@sinclair/typebox';
 import { tbUtil } from '../../util/tb-util';
-import { UserDtoSchema } from './user-dto';
 
 const SessionDtoTSchema = Type.Object({
   sid: Type.String(),
-  user_id: Type.Union([ UserDtoSchema.schema.properties.user_id, Type.Null() ]),
   sesh: Type.Object({
     cookie: Type.Object({
       originalMaxAge: Type.Union([ Type.Number(), Type.Null() ]),
@@ -31,6 +29,7 @@ const SessionDtoTSchema = Type.Object({
 export type SessionDto = Static<typeof SessionDtoTSchema>;
 
 export const SessionDtoSchema = {
+  schema: SessionDtoTSchema,
   decode: sessionDtoDecode,
 } as const;
 

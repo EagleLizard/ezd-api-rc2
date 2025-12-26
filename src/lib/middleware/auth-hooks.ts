@@ -9,11 +9,12 @@ export const authHooks = {
 
 async function authNPreHandler(req: FastifyRequest, res: FastifyReply) {
   let userDto: UserDto | undefined;
-  if(req.session.user_id === undefined) {
-    res.status(401).send();
-    return res;
+  let seshUserId: UserDto['user_id'] | undefined;
+  seshUserId = await userService.getLoggedInUser(req.session.sessionId);
+  if(seshUserId === undefined) {
+    return res.status(401).send();
   }
-  userDto = await userService.getUserById(req.session.user_id);
+  userDto = await userService.getUserById(seshUserId);
   if(userDto === undefined) {
     res.status(401).send();
     return res;

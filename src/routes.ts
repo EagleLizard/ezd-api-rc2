@@ -5,7 +5,7 @@ import { FastifyInstance } from 'fastify';
 import { getHealthCtrl } from './ctrl/get-health';
 import { getIndexCtrl } from './ctrl/get-index';
 import { postRegisterUserCtrl } from './ctrl/users/register-user-ctrl';
-import { postUserLogin } from './ctrl/users/user-auth-ctrl';
+import { postUserLogin, postUserLogout } from './ctrl/users/user-auth-ctrl';
 import { getWhoamiCtrl } from './ctrl/users/whoami-ctrl';
 import { staticPlug } from './lib/middleware/static-plug/static-plug';
 import { BASE_DIR } from './lib/constants';
@@ -29,4 +29,6 @@ export function registerRoutes(app: FastifyInstance) {
 
 export function registerAuthNRoutes(app: FastifyInstance) {
   app.get('/v1/user/whoami', getWhoamiCtrl);
+
+  app.post('/v1/user/logout', postUserLogout);
 }

@@ -27,11 +27,24 @@ create table session (
   sid TEXT PRIMARY KEY NOT NULL UNIQUE,
   sesh json NOT NULL,
   expire TIMESTAMP NOT NULL,
-
-  user_id TEXT references users(user_id) ON DELETE SET NULL,
-
   ip_addr TEXT NOT NULL,
   user_agent TEXT,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+/*
+  Record user login info, even if the session entry is deleted.
+_*/
+create table user_login (
+  user_login_id SERIAL PRIMARY KEY NOT NULL UNIQUE,
+  logged_out BOOLEAN NOT NULL DEFAULT FALSE,
+  logged_out_at TIMESTAMP,
+  ip_addr TEXT NOT NULL,
+
+  sid TEXT references session(sid) ON DELETE SET NULL,
+  user_id TEXT references users(user_id) NOT NULL,
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
