@@ -2,6 +2,7 @@
 import path from 'node:path';
 
 import { FastifyInstance } from 'fastify';
+import { Type } from 'typebox';
 import { getHealthCtrl } from './ctrl/get-health';
 import { getIndexCtrl } from './ctrl/get-index';
 import { postRegisterUserCtrl } from './ctrl/users/register-user-ctrl';
@@ -13,7 +14,6 @@ import { getUserCtrl } from './ctrl/users/user-ctrl';
 import { postUserRole } from './ctrl/users/user-authz-ctrl';
 import { Metrics } from './lib/lib/metrics';
 import { UserDtoSchema } from './lib/models/user-dto';
-import { Type } from '@sinclair/typebox';
 
 export function registerRoutes(app: FastifyInstance) {
   app.get('/health', getHealthCtrl);

@@ -1,5 +1,5 @@
 
-import { Type, Static } from '@sinclair/typebox';
+import { Type, Static } from 'typebox';
 
 import { tbUtil } from '../../util/tb-util';
 import { UserDtoSchema } from './user-dto';
@@ -8,7 +8,7 @@ import { SessionDtoSchema } from './session-dto';
 const UserLoginDtoTSchema = Type.Object({
   user_login_id: Type.Number(),
   logged_out: Type.Boolean(),
-  logged_out_at: Type.Union([ Type.Date(), Type.Null() ]),
+  logged_out_at: Type.Union([ Type.String({ format: 'pg-date-time' }), Type.Null() ]),
   ip_addr: Type.String(),
 
   sid: SessionDtoSchema.schema.properties.sid,

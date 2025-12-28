@@ -1,5 +1,5 @@
 
-import { Type, Static } from '@sinclair/typebox';
+import { Type, Static } from 'typebox';
 import { tbUtil } from '../../../util/tb-util';
 
 const MimeGenMetaTSchema = Type.Object({

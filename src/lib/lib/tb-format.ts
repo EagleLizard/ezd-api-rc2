@@ -1,5 +1,5 @@
-import { IsDate } from './format/date';
-import { IsTime } from './format/time';
+
+import Format from 'typebox/format';
 
 export const tbFormat = {
   isPgDateTime: isPgDateTime,
@@ -11,5 +11,9 @@ export const tbFormat = {
 _*/
 function isPgDateTime(value: string, strictTimeZone: boolean = false) {
   const dateTime: string[] = value.split(/ /i);
-  return dateTime.length === 2 && IsDate(dateTime[0]) && IsTime(dateTime[1], strictTimeZone);
+  return (
+    dateTime.length === 2
+    && Format.IsDate(dateTime[0])
+    && Format.IsTime(dateTime[1], strictTimeZone)
+  );
 }

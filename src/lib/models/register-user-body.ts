@@ -1,6 +1,6 @@
 
-import { Type, Static } from '@sinclair/typebox';
-import { Value } from '@sinclair/typebox/value';
+import { Type, Static } from 'typebox';
+import { Value } from 'typebox/value';
 import { tbUtil } from '../../util/tb-util';
 
 const RegisterUserBodyTSchema = Type.Object({

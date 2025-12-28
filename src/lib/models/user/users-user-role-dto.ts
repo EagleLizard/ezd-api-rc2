@@ -1,5 +1,5 @@
 
-import { Type, Static } from '@sinclair/typebox';
+import { Type, Static } from 'typebox';
 import { tbUtil } from '../../../util/tb-util';
 import { UserDtoSchema } from '../user-dto';
 import { UserRoleDtoSchema } from './user-role-dto';

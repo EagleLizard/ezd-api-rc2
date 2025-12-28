@@ -1,7 +1,7 @@
 
 import 'source-map-support/register';
 import { initServer } from './server';
-import {  FormatRegistry  } from '@sinclair/typebox';
+import { Format } from 'typebox/format';
 import { tbFormat } from './lib/lib/tb-format';
 
 (async () => {
@@ -24,5 +24,5 @@ function setProcName() {
 }
 
 function initTypebox() {
-  FormatRegistry.Set('pg-date-time', tbFormat.isPgDateTime);
+  Format.Set('pg-date-time', tbFormat.isPgDateTime);
 }
