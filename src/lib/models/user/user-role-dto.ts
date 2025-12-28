@@ -1,18 +1,19 @@
 
 import { Type, Static } from '@sinclair/typebox';
-import { tbUtil } from '../../util/tb-util';
+import { tbUtil } from '../../../util/tb-util';
 
 const UserRoleDtoTSchema = Type.Object({
   role_id: Type.Integer(),
   role_name: Type.String(),
 
-  created_at: Type.Date(),
-  modified_at: Type.Date(),
+  created_at: Type.String({ format: 'pg-date-time' }),
+  modified_at: Type.String({ format: 'pg-date-time' }),
 });
 
 export type UserRoleDto = Static<typeof UserRoleDtoTSchema>;
 
 export const UserRoleDtoSchema = {
+  schema: UserRoleDtoTSchema,
   decode: decodeUserRoleDto,
 } as const;
 

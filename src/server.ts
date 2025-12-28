@@ -10,6 +10,7 @@ import { ezdConfig } from './lib/config';
 import { EzdSessionStore } from './lib/middleware/ezd-session-store';
 import { authHooks } from './lib/middleware/auth-hooks';
 import { userInfoPlug } from './lib/middleware/user-info-plug';
+import { Metrics } from './lib/lib/metrics';
 
 const cookie_max_age_days = 1;
 const cookie_max_age_ms = cookie_max_age_days * 24 * 60 * 60 * 1000;
@@ -61,6 +62,7 @@ export async function initServer() {
     req.ctx ??= {};
     done();
   });
+  Metrics.init();
 
   userInfoPlug(app);
 

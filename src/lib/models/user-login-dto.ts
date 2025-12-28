@@ -14,8 +14,8 @@ const UserLoginDtoTSchema = Type.Object({
   sid: SessionDtoSchema.schema.properties.sid,
   user_id: UserDtoSchema.schema.properties.user_id,
 
-  created_at: Type.Date(),
-  modified_at: Type.Date(),
+  created_at: Type.String({ format: 'pg-date-time' }),
+  modified_at: Type.String({ format: 'pg-date-time' }),
 });
 
 export type UserLoginDto = Static<typeof UserLoginDtoTSchema>;

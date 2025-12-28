@@ -7,8 +7,8 @@ const UserDtoTSchema = Type.Object({
   user_name: Type.String(),
   email: Type.String(),
 
-  created_at: Type.Date(),
-  modified_at: Type.Date(),
+  created_at: Type.String({ format: 'pg-date-time' }),
+  modified_at: Type.String({ format: 'pg-date-time' }),
 });
 
 export type UserDto = Static<typeof UserDtoTSchema>;

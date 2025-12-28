@@ -1,6 +1,28 @@
 
-import { Pool, PoolClient, QueryConfig, QueryConfigValues, QueryResult } from 'pg';
+import {
+  Pool,
+  PoolClient,
+  QueryConfig,
+  QueryConfigValues,
+  QueryResult,
+  types as pgTypes
+} from 'pg';
 import { ezdConfig } from '../config';
+
+(function initPg() {
+  /*
+    Don't parse types into JS objects. This helps with compatibility
+      with Typebox v1+
+  _*/
+  pgTypes.setTypeParser(pgTypes.builtins.DATE, strPassthrough);
+  pgTypes.setTypeParser(pgTypes.builtins.TIMESTAMP, strPassthrough);
+  pgTypes.setTypeParser(pgTypes.builtins.TIMESTAMPTZ, strPassthrough);
+
+  /* --- _*/
+  function strPassthrough(val: string): string {
+    return val;
+  }
+})();
 
 const pgPool = new Pool({
   host: ezdConfig.POSTGRES_HOST,

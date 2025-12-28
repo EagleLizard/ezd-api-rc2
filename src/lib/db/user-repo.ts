@@ -3,12 +3,11 @@ import crypto from 'node:crypto';
 
 import { QueryResult } from 'pg';
 import { IPgClient, PgClient } from './pg-client';
-import { UserRoleDto, UserRoleDtoSchema } from '../models/user-role-dto';
+import { UserRoleDto, UserRoleDtoSchema } from '../models/user/user-role-dto';
 import { PasswordDto, PasswordDtoSchema } from '../models/password-dto';
 import { UserDto, UserDtoSchema } from '../models/user-dto';
 import { authUtil } from '../lib/auth-util';
 import { EzdError } from '../models/error/ezd-error';
-import { ezdConfig } from '../config';
 import { idGen } from '../lib/id-gen';
 
 export const userRepo = {
@@ -54,7 +53,7 @@ async function getUserByName(userName: string): Promise<UserDto | undefined> {
   return userDto;
 }
 
-async function createUser(userName: string, email: string, password: string) {
+async function createUser(userName: string, email: string, password: string, roleNames: string[]) {
   /*
   should be done in a transaction:
   1. create user in users table
@@ -67,7 +66,10 @@ async function createUser(userName: string, email: string, password: string) {
 
     userDto = await insertUser(txnClient, userName, email);
     await insertPassword(txnClient, userDto.user_id, password);
-    await createUserUserRole(txnClient, userDto);
+    for(let i = 0; i < roleNames.length; i++) {
+      let roleName = roleNames[i];
+      await createUserUserRole(txnClient, userDto, roleName);
+    }
 
     await txnClient.query('COMMIT');
   } catch(e) {
@@ -80,19 +82,14 @@ async function createUser(userName: string, email: string, password: string) {
 }
 
 /* intended for initial user creation _*/
-async function createUserUserRole(pgClient: PgClient, userDto: UserDto) {
+async function createUserUserRole(pgClient: PgClient, userDto: UserDto, roleName: string) {
   let roleDto: UserRoleDto | undefined;
-  let roleName: string;
   let queryStr: string;
   let colNames: string[];
   let colNamesStr: string;
   let colNumsStr: string;
   let queryVals: [ string, number ];
   let queryRes: QueryResult;
-  roleName = (userDto.user_name === ezdConfig.EZD_SUPER_USER_USERNAME)
-    ? ezdConfig.EZD_SUPER_USER_ROLE_NAME
-    : ezdConfig.EZD_DEFAULT_ROLE_NAME
-  ;
   roleDto = await getRoleByName(roleName);
   if(roleDto === undefined) {
     throw new EzdError(`Error getting user_role: ${roleName}`);

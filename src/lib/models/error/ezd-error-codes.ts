@@ -5,6 +5,8 @@ export const ezdErrorCodes = {
   INVALID_JWT: 'EZD_0.2',
   INVALID_LOG_IN_INPUT: 'EZD_1.0',
   NOT_FOUND: 'EZD_2.0',
+  user_missing_from_ctx_in_authn_route: 'EZD_2.1',
+
   DB_ERROR: 'EZD_3.0',
   db_invalid_session_insert: 'EZD_3.1',
   db_invalid_return_type: 'EZD_3.2',

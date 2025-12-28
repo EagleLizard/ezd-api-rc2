@@ -23,7 +23,7 @@ const SessionDtoTSchema = Type.Object({
   }),
   ip_addr: Type.String(),
   user_agent: Type.Union([ Type.String(), Type.Null() ]),
-  expire: Type.Date(),
+  expire: Type.String({ format: 'pg-date-time' }),
 });
 
 export type SessionDto = Static<typeof SessionDtoTSchema>;

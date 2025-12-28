@@ -4,6 +4,19 @@ This document exists to track tasks & thoughts in lieu of a task management syst
 
 The format is roughly reverse-chronological by date.
 
+---
+---
+
+## [12/26/2025],[12/27/2025] Metrics & Observability
+
+Before I set up automatic CI/CD I'd like to have some basic observability metrics. The simplest version of this is probably _resource utilization_, like Memory and CPU statistics.
+
+I bookmarked a repository used in a youtube video comparing deno vs. bun vs. node that had metrics using prometheus: https://github.com/antonputra/tutorials/blob/217/lessons/217/node-app/metrics.js (and the [youtube vid](https://www.youtube.com/watch?v=yJmyYosyDDM))
+
+Fastify-metrics has some good prior art. I'd rather write my own metrics, but I plan to use this as a guideline. In particular the interface and the metrics that are provided. See:
+    - route metrics: https://github.com/SkeLLLa/fastify-metrics/blob/master/README.md#http-routes-metrics-in-prometheus
+    
+
 ## [12/21/2025]
 
 ### Generating unique IDs in Postgres

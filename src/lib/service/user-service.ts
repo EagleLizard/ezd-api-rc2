@@ -15,6 +15,8 @@ import { authRepo } from '../db/auth-repo';
 import { PgClient } from '../db/pg-client';
 import { sessionRepo } from '../db/session-repo';
 import { UserLoginDto } from '../models/user-login-dto';
+import { ezdConfig } from '../config';
+import { authzRepo } from '../db/authz-repo';
 
 export const userService = {
   getLoggedInUser: getLoggedInUserBySid,
@@ -24,13 +26,16 @@ export const userService = {
   getUserById: getUserById,
   getUserByName: getUserByName,
   checkUserPassword: checkUserPassword,
+
+  getRoles: getRoles,
 } as const;
 
-async function getLoggedInUserBySid(sid: string): Promise<string | undefined> {
-  let userId: string | undefined;
-  userId = await authRepo.getUserIdFromLoginBySid(PgClient, sid);
-  console.log({ userId });
-  return userId;
+function getRoles(userId: string) {
+  return authzRepo.getUserRoles(PgClient, userId);
+}
+
+function getLoggedInUserBySid(sid: string): Promise<string | undefined> {
+  return authRepo.getUserIdFromLoginBySid(PgClient, sid);
 }
 
 async function logoutUser(sid: string, user: UserDto) {
@@ -131,10 +136,21 @@ async function registerUser(
   if(!validPassword) {
     return new ValidationError('Invalid password');
   }
+  let roleNames: string[] = [
+    ezdConfig.EZD_DEFAULT_ROLE_NAME,
+  ];
+  /*
+    Some initial users have elevated roles out of necessity for when the
+      server initializes for the first time
+  _*/
+  if(registerUserBody.userName === ezdConfig.EZD_SUPER_USER_USERNAME) {
+    roleNames.push(ezdConfig.EZD_SUPER_USER_ROLE_NAME);
+  }
   let createUserRes = await userRepo.createUser(
     registerUserBody.userName,
     registerUserBody.email,
     registerUserBody.password,
+    roleNames,
   );
   /*
   TODO: collect reasons why not valid for returning to the client

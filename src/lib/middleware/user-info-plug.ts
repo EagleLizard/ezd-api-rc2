@@ -27,9 +27,9 @@ export function userInfoPlug(app: FastifyInstance) {
 }
 
 function getHeaderIp(req: FastifyRequest): string | undefined {
-  ip_headers.some((ipHeader) => {
-    console.log(`${ipHeader}: ${req.headers[ipHeader]}`);
-  });
+  // ip_headers.some((ipHeader) => {
+  //   console.log(`${ipHeader}: ${req.headers[ipHeader]}`);
+  // });
   let cfIp = getHeaderStr(req.headers, 'cf-connecting-ip');
   if(cfIp !== undefined) {
     return cfIp;

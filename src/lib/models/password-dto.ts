@@ -9,8 +9,8 @@ const PasswordDtoTSchema = Type.Object({
 
   user_id: Type.String(), // FK
 
-  created_at: Type.Date(),
-  modified_at: Type.Date(),
+  created_at: Type.String({ format: 'pg-date-time' }),
+  modified_at: Type.String({ format: 'pg-date-time' }),
 });
 
 export type PasswordDto = Static<typeof PasswordDtoTSchema>;
