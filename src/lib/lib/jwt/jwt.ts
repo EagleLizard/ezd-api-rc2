@@ -1,12 +1,12 @@
 
 import crypto from 'node:crypto';
 
-import { EzdError } from '../models/error/ezd-error';
-import { ezdErrorCodes } from '../models/error/ezd-error-codes';
-import { JwtHeader, JwtHeaderSchema } from '../models/jwt-header';
-import { JwtPayload, JwtPayloadSchema } from '../models/jwt-payload';
+import { EzdError } from '../../models/error/ezd-error';
+import { ezdErrorCodes } from '../../models/error/ezd-error-codes';
+import { JwtHeader, JwtHeaderSchema } from '../../models/jwt-header';
+import { JwtPayload, JwtPayloadSchema } from '../../models/jwt-payload';
 
-type DecodedJwt = {
+export type DecodedJwt = {
   header: JwtHeader;
   payload: JwtPayload;
   signature: string;
@@ -38,6 +38,13 @@ function verify(token: string, secret: string) {
     );
   }
   [ headerPart, payloadPart, sigPart ] = tokenParts;
+  let decodedJwt = jwt.decode(token);
+  if(
+    decodedJwt.payload.exp !== undefined
+    && decodedJwt.payload.exp < Math.ceil(Date.now() / 1000)
+  ) {
+    return false;
+  }
   let verifySigBuf: Buffer<ArrayBufferLike> = crypto.createHmac('sha256', secret)
     .update(`${headerPart}.${payloadPart}`)
     .digest()

@@ -12,6 +12,7 @@ import { idGen } from '../lib/id-gen';
 
 export const userRepo = {
   createUser: createUser,
+  deleteUser: deleteUser,
   getUserById: getUserById,
   getUserByName: getUserByName,
   getPasswordByUserId: getPasswordByUserId,
@@ -53,7 +54,12 @@ async function getUserByName(userName: string): Promise<UserDto | undefined> {
   return userDto;
 }
 
-async function createUser(userName: string, email: string, password: string, roleNames: string[]) {
+async function createUser(
+  userName: string,
+  email: string,
+  password: string,
+  roleNames: string[]
+): Promise<UserDto> {
   /*
   should be done in a transaction:
   1. create user in users table
@@ -79,6 +85,16 @@ async function createUser(userName: string, email: string, password: string, rol
   } finally {
     txnClient.release();
   }
+  return userDto;
+}
+
+async function deleteUser(pgClient: IPgClient, userId: UserDto['user_id']): Promise<void> {
+  let queryStr = `
+    delete from users u where u.user_id = $1
+  `;
+  let queryVals: [user_id: string] = [ userId ];
+  let queryRes = await pgClient.query(queryStr, queryVals);
+  console.log(queryRes.rows);
 }
 
 /* intended for initial user creation _*/
@@ -134,7 +150,8 @@ async function insertUser(
   colNamesStr = colNames.join(', ');
   colNumsStr = colNames.map((_, idx) => `$${idx + 1}`).join(', ');
   queryStr = `
-    insert into users (${colNamesStr}) values(${colNumsStr}) returning *
+    insert into users (${colNamesStr}) values(${colNumsStr})
+    returning *
   `;
   let userId: string = idGen.rd2();
   queryVals = [

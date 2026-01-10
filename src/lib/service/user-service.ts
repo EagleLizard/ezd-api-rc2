@@ -23,12 +23,17 @@ export const userService = {
   logoutUser: logoutUser,
   logInUser: logInUser,
   registerUser: registerUser,
+  deleteUser: deleteUser,
   getUserById: getUserById,
   getUserByName: getUserByName,
   checkUserPassword: checkUserPassword,
 
   getRoles: getRoles,
 } as const;
+
+function deleteUser(userId: string) {
+  return userRepo.deleteUser(PgClient, userId);
+}
 
 function getRoles(userId: string) {
   return authzRepo.getUserRoles(PgClient, userId);
@@ -42,7 +47,11 @@ async function logoutUser(sid: string, user: UserDto) {
   return authRepo.logoutSession(PgClient, sid, user.user_id);
 }
 
-async function logInUser(user: UserDto, session: FastifySessionObject): Promise<UserLoginDto> {
+async function logInUser(
+  user: UserDto,
+  session: FastifySessionObject,
+  ipAddr: string,
+): Promise<UserLoginDto> {
   /*
     check if login entry exists for current session.
       If exists:
@@ -73,7 +82,7 @@ async function logInUser(user: UserDto, session: FastifySessionObject): Promise<
     PgClient,
     user.user_id,
     session.sessionId,
-    session.ip
+    ipAddr
   );
   return userLogin;
 }
@@ -118,7 +127,7 @@ returns undefined if successful, otherwise some error
 _*/
 async function registerUser(
   registerUserBody: RegisterUserBody
-): Promise<ValidationError | undefined> {
+): Promise<ValidationError | UserDto> {
   let validUserName: boolean;
   let validEmail: boolean;
   let validPassword: boolean;
@@ -143,10 +152,13 @@ async function registerUser(
     Some initial users have elevated roles out of necessity for when the
       server initializes for the first time
   _*/
-  if(registerUserBody.userName === ezdConfig.EZD_SUPER_USER_USERNAME) {
+  if(
+    registerUserBody.userName === ezdConfig.EZD_SUPER_USER_USERNAME
+    || registerUserBody.userName === ezdConfig.EZD_API_USER_USERNAME
+  ) {
     roleNames.push(ezdConfig.EZD_SUPER_USER_ROLE_NAME);
   }
-  let createUserRes = await userRepo.createUser(
+  let createUserRes: UserDto = await userRepo.createUser(
     registerUserBody.userName,
     registerUserBody.email,
     registerUserBody.password,
@@ -155,5 +167,5 @@ async function registerUser(
   /*
   TODO: collect reasons why not valid for returning to the client
   _*/
-
+  return createUserRes;
 }

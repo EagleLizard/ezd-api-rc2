@@ -62,7 +62,6 @@ function seshDtoToFastifySession(seshDto: SessionDto): Fastify.Session {
     : undefined
   ;
   fSesh = {
-    ip: seshDto.ip_addr,
     userAgent: seshDto.user_agent ?? undefined,
     cookie: {
       ...seshDto.sesh.cookie,

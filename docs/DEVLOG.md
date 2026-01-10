@@ -7,6 +7,22 @@ The format is roughly reverse-chronological by date.
 ---
 ---
 
+## [01/07/2026] Secret Store naming
+
+I'm trying to think of a unique and original name for the interface / client I use to interact with whatever secret store I want to use, e.g. Google Cloud GCP  Secret Manager, AWS Secret Manager. Some ideas:
+
+1. mezzanine
+1. dead drop
+1. compartment
+1. boudoir
+1. armoire
+1. chest
+1. trunk
+1. locker
+1. minaudière
+    1. purse
+1. caisson
+
 ## [12/26/2025],[12/27/2025] Metrics & Observability
 
 Before I set up automatic CI/CD I'd like to have some basic observability metrics. The simplest version of this is probably _resource utilization_, like Memory and CPU statistics.

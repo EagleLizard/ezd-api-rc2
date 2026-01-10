@@ -3,7 +3,9 @@ export const ezdErrorCodes = {
   DEFAULT: 'EZD_0.0',
   INVALID_PASSWORD: 'EZD_0.1',
   INVALID_JWT: 'EZD_0.2',
-  INVALID_LOG_IN_INPUT: 'EZD_1.0',
+  system_secret_expired: 'EZD_0.3',
+  system_secret_not_found: 'EZD_0.4',
+  // INVALID_LOG_IN_INPUT: 'EZD_1.0',
   schema_decode: 'EZD_1.1',
 
   NOT_FOUND: 'EZD_2.0',

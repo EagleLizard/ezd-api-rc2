@@ -1,5 +1,5 @@
 
-import Fastify, { FastifyInstance } from 'fastify';
+import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyCookie from '@fastify/cookie';
 import fastifySession from '@fastify/session';
@@ -11,6 +11,8 @@ import { EzdSessionStore } from './lib/middleware/ezd-session-store';
 import { authHooks } from './lib/middleware/auth-hooks';
 import { userInfoPlug } from './lib/middleware/user-info-plug';
 import { Metrics } from './lib/lib/metrics';
+import { FastifyTypeBox } from './lib/models/fastify/fastify-typebox';
+import { apiInit } from './lib/api-init';
 
 const cookie_max_age_days = 1;
 const cookie_max_age_ms = cookie_max_age_days * 24 * 60 * 60 * 1000;
@@ -18,7 +20,7 @@ const cookie_max_age_ms = cookie_max_age_days * 24 * 60 * 60 * 1000;
 const devEnv = ezdConfig.isDevEnv();
 
 export async function initServer() {
-  let app: FastifyInstance;
+  let app: FastifyTypeBox;
   let port: number;
   let host: string;
 
@@ -29,16 +31,16 @@ export async function initServer() {
   });
 
   let seshStore = new EzdSessionStore();
-  app.register(cors, {
+  app = app.register(cors, {
     // origin: '*',
     origin: [ ezdConfig.EZD_WEB_ORIGIN ],
     // origin: false,
     credentials: true,
   });
-  app.register(fastifyCookie);
-  app.register(fastifySession, {
+  app = app.register(fastifyCookie);
+  app = app.register(fastifySession, {
     secret: ezdConfig.SESSION_SECRET,
-    saveUninitialized: true,
+    saveUninitialized: false,
     store: seshStore,
     cookieName: ezdConfig.EZD_SESSION_ID_NAME,
     cookie: {
@@ -47,6 +49,7 @@ export async function initServer() {
       maxAge: cookie_max_age_ms,
       secure: 'auto',
       httpOnly: true,
+      // sameSite: 'none',
     },
   });
 
@@ -82,6 +85,16 @@ export async function initServer() {
     registerAuthNRoutes(fastify);
     done();
   });
+
+  /*
+  -- API initialization
+  _*/
+
+  await apiInit.setupServer();
+
+  /*
+  -- Server Start
+  _*/
 
   host = ezdConfig.EZD_HOST;
   port = ezdConfig.EZD_PORT;

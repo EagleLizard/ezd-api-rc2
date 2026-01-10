@@ -14,6 +14,30 @@ insert into user_role (role_name) values('ServerAdmin');
 -- the default role
 insert into user_role (role_name) values('Default');
 
+create table permission (
+  permission_id SERIAL PRIMARY KEY,
+  permission_name TEXT NOT NULL UNIQUE,
+  -- permission_description TEXT NOT NULL UNIQUE,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+insert into permission (permission_name) values('user.mgmt');
+
+create table role_permission (
+  role_id INT references user_role(role_id) NOT NULL,
+  permission_id INT references permission(permission_id) NOT NULL,
+  PRIMARY KEY (role_id, permission_id),
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+insert into role_permission (role_id, permission_id) values(
+  (select ur.role_id from user_role ur where ur.role_name = 'ServerAdmin'),
+  (select p.permission_id from permission p where p.permission_name = 'user.mgmt')
+);
+
 create table users (
   user_id TEXT NOT NULL UNIQUE PRIMARY KEY,
   user_name TEXT NOT NULL UNIQUE,
@@ -27,7 +51,6 @@ create table session (
   sid TEXT PRIMARY KEY NOT NULL UNIQUE,
   sesh json NOT NULL,
   expire TIMESTAMP NOT NULL,
-  ip_addr TEXT NOT NULL,
   user_agent TEXT,
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -44,7 +67,7 @@ create table user_login (
   ip_addr TEXT NOT NULL,
 
   sid TEXT references session(sid) ON DELETE SET NULL,
-  user_id TEXT references users(user_id) NOT NULL,
+  user_id TEXT references users(user_id) ON DELETE CASCADE NOT NULL,
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

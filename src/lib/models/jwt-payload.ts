@@ -14,6 +14,7 @@ const JwtPayloadTSchema = Type.Intersect([
     nbf: Type.Optional(Type.Number()),
     iat: Type.Optional(Type.Number()),
     jti: Type.Optional(Type.String()),
+    userId: Type.Optional(Type.String()),
   }),
   Type.Record(Type.String(), Type.Unknown()),
 ]);

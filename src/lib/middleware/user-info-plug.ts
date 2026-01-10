@@ -1,5 +1,5 @@
 
-import { FastifyInstance, FastifyRequest } from 'fastify';
+import { FastifyTypeBox, FastifyRequestTypeBox } from '../models/fastify/fastify-typebox';
 
 /*
 ordered by precedence high -> low, desc
@@ -9,7 +9,7 @@ const ip_headers = [
   // 'x-real-ip',
 ] as const;
 
-export function userInfoPlug(app: FastifyInstance) {
+export function userInfoPlug(app: FastifyTypeBox) {
   app.addHook('onRequest', (req, res, done) => {
     let headerIp: string | undefined;
     let reqIp: string;
@@ -21,12 +21,12 @@ export function userInfoPlug(app: FastifyInstance) {
       }, 'Header ip differs from req.ip');
     }
     reqIp = headerIp ?? req.ip;
-    req.session.ip = reqIp;
+    // req.session.ip = reqIp;
     done();
   });
 }
 
-function getHeaderIp(req: FastifyRequest): string | undefined {
+function getHeaderIp(req: FastifyRequestTypeBox): string | undefined {
   // ip_headers.some((ipHeader) => {
   //   console.log(`${ipHeader}: ${req.headers[ipHeader]}`);
   // });
@@ -40,7 +40,7 @@ function getHeaderIp(req: FastifyRequest): string | undefined {
 Throws error if an array of strings are found. This is to type-check fastify's req.header
   type, and shouldn't happen at runtime without enabling advanced header parsing.
 _*/
-function getHeaderStr(headers: FastifyRequest['headers'], key: string): string | undefined {
+function getHeaderStr(headers: FastifyRequestTypeBox['headers'], key: string): string | undefined {
   let headerVal = headers[key];
   if(headerVal === undefined) {
     return;

@@ -66,12 +66,11 @@ async function insertSession(
     sid: string,
     sesh: string,
     expire: number,
-    ip_addr: string,
     user_agent: string|undefined
   ];
   let queryStr = `
     insert into session
-      (sid, sesh, expire, ip_addr, user_agent) select $1, $2, to_timestamp($3), $4, $5
+      (sid, sesh, expire, user_agent) select $1, $2, to_timestamp($3), $4
     on conflict (sid) do update set
       sesh=$2,
       expire=to_timestamp($3),
@@ -84,7 +83,6 @@ async function insertSession(
       cookie: sesh.cookie,
     }),
     expireTime,
-    sesh.ip,
     sesh.userAgent,
   ];
   let queryRes = await pgClient.query(queryStr, queryParams);
