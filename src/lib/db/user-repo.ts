@@ -1,7 +1,6 @@
 
 import crypto from 'node:crypto';
 
-import { QueryResult } from 'pg';
 import { IPgClient, PgClient } from './pg-client';
 import { UserRoleDto, UserRoleDtoSchema } from '../models/user/user-role-dto';
 import { PasswordDto, PasswordDtoSchema } from '../models/password-dto';
@@ -22,35 +21,29 @@ async function getUserById(
   pgClient: IPgClient,
   userId: UserDto['user_id']
 ): Promise<UserDto | undefined> {
-  let userDto: UserDto;
-  let queryStr: string;
-  let queryRes: QueryResult;
-  queryStr = `
+  let queryStr = `
     select * from users u
       where u.user_id = $1
     limit 1
   `;
-  queryRes = await pgClient.query(queryStr, [ userId ]);
+  let queryRes = await pgClient.query(queryStr, [ userId ]);
   if(queryRes.rows[0] === undefined) {
     return undefined;
   }
-  userDto = UserDtoSchema.decode(queryRes.rows[0]);
+  let userDto = UserDtoSchema.decode(queryRes.rows[0]);
   return userDto;
 }
 
 async function getUserByName(userName: string): Promise<UserDto | undefined> {
-  let userDto: UserDto;
-  let queryStr: string;
-  let queryRes: QueryResult;
-  queryStr = `
+  let queryStr = `
     select * from users u where u.user_name = $1
       limit 1
   `;
-  queryRes = await PgClient.query(queryStr, [ userName ]);
+  let queryRes = await PgClient.query(queryStr, [ userName ]);
   if(queryRes.rows[0] === undefined) {
     return undefined;
   }
-  userDto = UserDtoSchema.decode(queryRes.rows[0]);
+  let userDto = UserDtoSchema.decode(queryRes.rows[0]);
   return userDto;
 }
 
@@ -93,37 +86,29 @@ async function deleteUser(pgClient: IPgClient, userId: UserDto['user_id']): Prom
     delete from users u where u.user_id = $1
   `;
   let queryVals: [user_id: string] = [ userId ];
-  let queryRes = await pgClient.query(queryStr, queryVals);
-  console.log(queryRes.rows);
+  await pgClient.query(queryStr, queryVals);
 }
 
 /* intended for initial user creation _*/
 async function createUserUserRole(pgClient: PgClient, userDto: UserDto, roleName: string) {
-  let roleDto: UserRoleDto | undefined;
-  let queryStr: string;
-  let colNames: string[];
-  let colNamesStr: string;
-  let colNumsStr: string;
-  let queryVals: [ string, number ];
-  let queryRes: QueryResult;
-  roleDto = await getRoleByName(roleName);
+  let roleDto = await getRoleByName(roleName);
   if(roleDto === undefined) {
     throw new EzdError(`Error getting user_role: ${roleName}`);
   }
-  colNames = [
+  let colNames = [
     'user_id',
     'role_id'
   ];
-  colNamesStr = colNames.join(', ');
-  colNumsStr = colNames.map((_, idx) => `$${idx + 1}`).join(', ');
-  queryStr = `
+  let colNamesStr = colNames.join(', ');
+  let colNumsStr = colNames.map((_, idx) => `$${idx + 1}`).join(', ');
+  let queryStr = `
     insert into users_user_role (${colNamesStr}) values(${colNumsStr}) returning *
   `;
-  queryVals = [
+  let queryVals: [ string, number ] = [
     userDto.user_id,
     roleDto.role_id,
   ];
-  queryRes = await pgClient.query(queryStr, queryVals);
+  let queryRes = await pgClient.query(queryStr, queryVals);
   if(queryRes.rows.length < 1) {
     throw new EzdError(`Error creating role '${roleName}' for user: ${userDto.user_name}`);
   }
@@ -134,32 +119,25 @@ async function insertUser(
   userName: string,
   email: string,
 ): Promise<UserDto> {
-  let queryStr: string;
-  let queryVals: [ userId: string, string, string ];
-  let colNames: string[];
-  let colNamesStr: string;
-  let colNumsStr: string;
-  let queryRes: QueryResult;
-  let userDto: UserDto;
-
-  colNames = [
+  let colNames = [
     'user_id',
     'user_name',
     'email',
   ];
-  colNamesStr = colNames.join(', ');
-  colNumsStr = colNames.map((_, idx) => `$${idx + 1}`).join(', ');
-  queryStr = `
+  let colNamesStr = colNames.join(', ');
+  let colNumsStr = colNames.map((_, idx) => `$${idx + 1}`).join(', ');
+  let queryStr = `
     insert into users (${colNamesStr}) values(${colNumsStr})
     returning *
   `;
   let userId: string = idGen.rd2();
-  queryVals = [
+  let queryVals: [ userId: string, string, string ] = [
     userId,
     userName,
     email,
   ];
-  queryRes = await pgClient.query(queryStr, queryVals);
+  let queryRes = await pgClient.query(queryStr, queryVals);
+  let userDto: UserDto;
   try {
     userDto = UserDtoSchema.decode(queryRes.rows[0]);
   } catch(e) {
@@ -171,20 +149,17 @@ async function insertUser(
 }
 
 async function getPasswordByUserId(userId: string): Promise<PasswordDto | undefined> {
-  let passwordDto: PasswordDto;
-  let queryStr: string;
-  let queryRes: QueryResult;
-  queryStr = `
+  let queryStr = `
     select * from password p
       where p.user_id = $1
       order by p.created_at
       limit 1
   `;
-  queryRes = await PgClient.query(queryStr, [ userId ]);
+  let queryRes = await PgClient.query(queryStr, [ userId ]);
   if(queryRes.rows[0] === undefined) {
     return undefined;
   }
-  passwordDto = PasswordDtoSchema.decode(queryRes.rows[0]);
+  let passwordDto = PasswordDtoSchema.decode(queryRes.rows[0]);
   return passwordDto;
 }
 
@@ -193,53 +168,38 @@ via owasp, scrypt is good: https://cheatsheetseries.owasp.org/cheatsheets/Passwo
 related reddit thread: https://www.reddit.com/r/node/comments/17m8b4p/best_node_hashing_algorithm_option/
 _*/
 async function insertPassword(pgClient: PgClient, userId: string, password: string) {
-  let queryStr: string;
-  let queryVals: [ string, string, string ];
-  let colNames: string[];
-  let colNamesStr: string;
-  let colNumsStr: string;
-  let queryRes: QueryResult;
-  let passwordDto: PasswordDto;
+  let salt = crypto.randomBytes(128).toString('base64');
+  let passwordHashBuf = await authUtil.getPasswordHash(password, salt);
+  let passwordHash = passwordHashBuf.toString('base64');
 
-  let salt: string;
-  let passwordHashBuf: Buffer<ArrayBufferLike>;
-  let passwordHash: string;
-  // let passwordDto: PasswordDto;
-
-  salt = crypto.randomBytes(128).toString('base64');
-  passwordHashBuf = await authUtil.getPasswordHash(password, salt);
-  passwordHash = passwordHashBuf.toString('base64');
-
-  colNames = [
+  let colNames = [
     'password_hash',
     'salt',
     'user_id',
   ];
-  colNamesStr = colNames.join(', ');
-  colNumsStr = colNames.map((_, idx) => `$${idx + 1}`).join(', ');
-  queryStr = `
+  let colNamesStr = colNames.join(', ');
+  let colNumsStr = colNames.map((_, idx) => `$${idx + 1}`).join(', ');
+  let queryStr = `
     insert into password (${colNamesStr}) values(${colNumsStr}) returning *
   `;
-  queryVals = [
+  let queryVals: [ string, string, string ] = [
     passwordHash,
     salt,
     userId,
   ];
-  queryRes = await pgClient.query(queryStr, queryVals);
-  passwordDto = PasswordDtoSchema.decode(queryRes.rows[0]);
+  let queryRes = await pgClient.query(queryStr, queryVals);
+  let passwordDto = PasswordDtoSchema.decode(queryRes.rows[0]);
 
   return passwordDto.password_id;
 }
 
 async function getRoleByName(roleName: string): Promise<UserRoleDto | undefined> {
-  let queryStr: string;
-  let queryRes: QueryResult;
-  queryStr = `
+  let queryStr = `
     select role_id, role_name, created_at, modified_at from user_role ur
       where ur.role_name like $1
       limit 1
   `;
-  queryRes = await PgClient.query(queryStr, [ roleName ]);
+  let queryRes = await PgClient.query(queryStr, [ roleName ]);
   if(queryRes.rows.length < 1) {
     return;
   }
