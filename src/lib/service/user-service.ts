@@ -16,7 +16,6 @@ import { PgClient } from '../db/pg-client';
 import { sessionRepo } from '../db/session-repo';
 import { UserLoginDto } from '../models/user-login-dto';
 import { ezdConfig } from '../config';
-import { authzRepo } from '../db/authz-repo';
 
 export const userService = {
   getLoggedInUser: getLoggedInUserBySid,
@@ -27,16 +26,10 @@ export const userService = {
   getUserById: getUserById,
   getUserByName: getUserByName,
   checkUserPassword: checkUserPassword,
-
-  getRoles: getRoles,
 } as const;
 
-function deleteUser(userId: string) {
+async function deleteUser(userId: string) {
   return userRepo.deleteUser(PgClient, userId);
-}
-
-function getRoles(userId: string) {
-  return authzRepo.getUserRoles(PgClient, userId);
 }
 
 function getLoggedInUserBySid(sid: string): Promise<string | undefined> {
@@ -131,7 +124,7 @@ async function registerUser(
   let validUserName: boolean;
   let validEmail: boolean;
   let validPassword: boolean;
-  let errors: string[] = [];
+  // let errors: string[] = [];
   /* static/format validation _*/
   validUserName = inputFormats.checkUserName(registerUserBody.userName);
   if(!validUserName) {

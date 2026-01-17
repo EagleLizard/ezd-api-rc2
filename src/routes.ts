@@ -9,7 +9,7 @@ import { getWhoamiCtrl } from './ctrl/users/whoami-ctrl';
 import { staticPlug } from './lib/middleware/static-plug/static-plug';
 import { BASE_DIR } from './lib/constants';
 import { getUserCtrl } from './ctrl/users/user-ctrl';
-import { postUserRole } from './ctrl/users/user-authz-ctrl';
+import { userAuthzCtrl } from './ctrl/users/user-authz-ctrl';
 import { Metrics } from './lib/lib/metrics';
 import { FastifyTypeBox } from './lib/models/fastify/fastify-typebox';
 
@@ -42,7 +42,18 @@ export function registerAuthNRoutes(app: FastifyInstance) {
   app.post('/v1/user/logout', {
     schema: userAuthCtrl.PostUserLogoutSchema
   }, userAuthCtrl.postUserLogout);
-  app.post('/v1/user/role', postUserRole);
+  app.get('/v1/user/:userId/role', {
+    schema: userAuthzCtrl.GetUserRolesSchema
+  }, userAuthzCtrl.getUserRoles);
+  app.post('/v1/user/:userId/role', {
+    schema: userAuthzCtrl.PostUserRoleSchema
+  }, userAuthzCtrl.postUserRole);
+  app.delete('/v1/user/:userId/role/:roleName', {
+    schema: userAuthzCtrl.DeleteUserRoleSchema,
+  }, userAuthzCtrl.deleteUserRole);
+  app.get('/v1/user/:userId/permission', {
+    schema: userAuthzCtrl.GetUserPermissionsSchema,
+  }, userAuthzCtrl.getUserPermissions);
   app.delete('/v1/user/:userId', {
     schema: userAuthCtrl.DeleteUserSchema,
   }, userAuthCtrl.deleteUser);

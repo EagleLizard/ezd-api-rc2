@@ -25,6 +25,9 @@ async function authNPreHandler(req: FastifyRequest, res: FastifyReply) {
       return res.status(401).send();
     }
     userDto = await userService.getUserById(tokenUserId);
+    if(userDto === undefined) {
+      return res.status(401).send();
+    }
     req.ctx.user = userDto;
     return;
   }

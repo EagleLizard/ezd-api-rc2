@@ -1,5 +1,5 @@
 
-import Type, { Static } from 'typebox';
+import { Type, Static } from 'typebox';
 import { userService } from '../../lib/service/user-service';
 import { UserDto, UserDtoSchema } from '../../lib/models/user-dto';
 import { EzdError } from '../../lib/models/error/ezd-error';
@@ -10,6 +10,7 @@ import {
 import { authService } from '../../lib/service/auth-service';
 import { RegisterUserBody, RegisterUserBodySchema } from '../../lib/models/register-user-body';
 import { ValidationError } from '../../lib/models/error/validation-error';
+import { authzService } from '../../lib/service/authz-service';
 
 const PostRegisterUserSchema = {
   body: Type.Object({
@@ -105,9 +106,7 @@ async function postUserLogin(
   }
   await userService.logInUser(user, req.session, req.ip);
 
-  respOk = {
-    user: user,
-  };
+  respOk = { user: user };
   if(req.query.withJwt === true) {
     respOk.token = await authService.getJwt(user);
   }
@@ -148,13 +147,19 @@ const DeleteUserSchema = {
   }),
   response: {
     200: Type.Optional(Type.Object({})),
+    401: Type.Optional(Type.Object({})),
   },
 } as const;
 type DeleteUser = typeof DeleteUserSchema;
+
 async function deleteUser(
   req: FastifyRequestTypeBox<DeleteUser>,
   res: FastifyReplyTypeBox<DeleteUser>,
 ) {
+  if(req.ctx.user === undefined) {
+    return res.status(401).send();
+  }
+  await authzService.checkPermission(req.ctx.user.user_id, 'user.mgmt');
   await userService.deleteUser(req.params.userId);
   return res.status(200).send();
 }

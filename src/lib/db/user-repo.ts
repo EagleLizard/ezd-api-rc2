@@ -2,12 +2,12 @@
 import crypto from 'node:crypto';
 
 import { IPgClient, PgClient } from './pg-client';
-import { UserRoleDto, UserRoleDtoSchema } from '../models/user/user-role-dto';
 import { PasswordDto, PasswordDtoSchema } from '../models/password-dto';
 import { UserDto, UserDtoSchema } from '../models/user-dto';
 import { authUtil } from '../lib/auth-util';
 import { EzdError } from '../models/error/ezd-error';
 import { idGen } from '../lib/id-gen';
+import { authzRepo } from './authz-repo';
 
 export const userRepo = {
   createUser: createUser,
@@ -27,7 +27,7 @@ async function getUserById(
     limit 1
   `;
   let queryRes = await pgClient.query(queryStr, [ userId ]);
-  if(queryRes.rows[0] === undefined) {
+  if(queryRes.rows.length < 1) {
     return undefined;
   }
   let userDto = UserDtoSchema.decode(queryRes.rows[0]);
@@ -67,7 +67,8 @@ async function createUser(
     await insertPassword(txnClient, userDto.user_id, password);
     for(let i = 0; i < roleNames.length; i++) {
       let roleName = roleNames[i];
-      await createUserUserRole(txnClient, userDto, roleName);
+      let roleDto = await authzRepo.getRoleByName(txnClient, roleName);
+      await authzRepo.insertUsersUserRole(txnClient, userDto.user_id, roleDto.role_id);
     }
 
     await txnClient.query('COMMIT');
@@ -87,31 +88,6 @@ async function deleteUser(pgClient: IPgClient, userId: UserDto['user_id']): Prom
   `;
   let queryVals: [user_id: string] = [ userId ];
   await pgClient.query(queryStr, queryVals);
-}
-
-/* intended for initial user creation _*/
-async function createUserUserRole(pgClient: PgClient, userDto: UserDto, roleName: string) {
-  let roleDto = await getRoleByName(roleName);
-  if(roleDto === undefined) {
-    throw new EzdError(`Error getting user_role: ${roleName}`);
-  }
-  let colNames = [
-    'user_id',
-    'role_id'
-  ];
-  let colNamesStr = colNames.join(', ');
-  let colNumsStr = colNames.map((_, idx) => `$${idx + 1}`).join(', ');
-  let queryStr = `
-    insert into users_user_role (${colNamesStr}) values(${colNumsStr}) returning *
-  `;
-  let queryVals: [ string, number ] = [
-    userDto.user_id,
-    roleDto.role_id,
-  ];
-  let queryRes = await pgClient.query(queryStr, queryVals);
-  if(queryRes.rows.length < 1) {
-    throw new EzdError(`Error creating role '${roleName}' for user: ${userDto.user_name}`);
-  }
 }
 
 async function insertUser(
@@ -191,17 +167,4 @@ async function insertPassword(pgClient: PgClient, userId: string, password: stri
   let passwordDto = PasswordDtoSchema.decode(queryRes.rows[0]);
 
   return passwordDto.password_id;
-}
-
-async function getRoleByName(roleName: string): Promise<UserRoleDto | undefined> {
-  let queryStr = `
-    select role_id, role_name, created_at, modified_at from user_role ur
-      where ur.role_name like $1
-      limit 1
-  `;
-  let queryRes = await PgClient.query(queryStr, [ roleName ]);
-  if(queryRes.rows.length < 1) {
-    return;
-  }
-  return UserRoleDtoSchema.decode(queryRes.rows[0]);
 }

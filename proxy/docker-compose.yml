@@ -1,5 +1,5 @@
 services:
-  nginx:
+  proxy:
     container_name: ezd_api_nginx
     image: nginx:latest
     restart: unless-stopped

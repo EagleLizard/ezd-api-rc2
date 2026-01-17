@@ -14,6 +14,8 @@ export const ezdErrorCodes = {
   DB_ERROR: 'EZD_3.0',
   db_invalid_session_insert: 'EZD_3.1',
   db_invalid_return_type: 'EZD_3.2',
+  db_role_not_found: 'EZD_3.3',
+  db_user_not_found: 'EZD_3.4',
 
   SERVER_MISSING_CTX: 'EZD_4.0',
   SERVER_MISSING_CTX_STATIC: 'EZD_4.1',

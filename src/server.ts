@@ -13,6 +13,7 @@ import { userInfoPlug } from './lib/middleware/user-info-plug';
 import { Metrics } from './lib/lib/metrics';
 import { FastifyTypeBox } from './lib/models/fastify/fastify-typebox';
 import { apiInit } from './lib/api-init';
+import { EzdError } from './lib/models/error/ezd-error';
 
 const cookie_max_age_days = 1;
 const cookie_max_age_ms = cookie_max_age_days * 24 * 60 * 60 * 1000;
@@ -62,7 +63,14 @@ export async function initServer() {
     /*
       set request context defaults
     _*/
-    req.ctx ??= {};
+    req.ctx ??= {
+      getUser: () => {
+        if(req.ctx.user === undefined) {
+          throw new EzdError('user missing from request context', 'EZD_2.1');
+        }
+        return req.ctx.user;
+      }
+    };
     done();
   });
   Metrics.init();

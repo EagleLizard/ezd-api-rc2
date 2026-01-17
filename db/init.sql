@@ -13,6 +13,8 @@ create table user_role (
 insert into user_role (role_name) values('ServerAdmin');
 -- the default role
 insert into user_role (role_name) values('Default');
+-- for api tests
+insert into user_role (role_name) values('Test');
 
 create table permission (
   permission_id SERIAL PRIMARY KEY,
@@ -24,6 +26,9 @@ create table permission (
 );
 
 insert into permission (permission_name) values('user.mgmt');
+insert into permission (permission_name) values('user.basic');
+insert into permission (permission_name) values('users.read');
+insert into permission (permission_name) values('test.read');
 
 create table role_permission (
   role_id INT references user_role(role_id) NOT NULL,
@@ -34,8 +39,20 @@ create table role_permission (
 );
 
 insert into role_permission (role_id, permission_id) values(
+  (select ur.role_id from user_role ur where ur.role_name = 'Default'),
+  (select p.permission_id from permission p where p.permission_name = 'user.basic')
+);
+insert into role_permission (role_id, permission_id) values(
+  (select ur.role_id from user_role ur where ur.role_name = 'Default'),
+  (select p.permission_id from permission p where p.permission_name = 'users.read')
+);
+insert into role_permission (role_id, permission_id) values(
   (select ur.role_id from user_role ur where ur.role_name = 'ServerAdmin'),
   (select p.permission_id from permission p where p.permission_name = 'user.mgmt')
+);
+insert into role_permission (role_id, permission_id) values (
+  (select ur.role_id from user_role ur where ur.role_name = 'Test'),
+  (select p.permission_id from permission p where p.permission_name = 'test.read')
 );
 
 create table users (
@@ -74,10 +91,9 @@ create table user_login (
 );
 
 create table users_user_role (
-  users_user_role_id SERIAL PRIMARY KEY,
-
   user_id TEXT references users(user_id) ON DELETE CASCADE,
   role_id INT references user_role(role_id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, role_id),
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

@@ -9,7 +9,6 @@ const UserRoleDtoTSchema = Type.Object({
   created_at: Type.String({ format: 'pg-date-time' }),
   modified_at: Type.String({ format: 'pg-date-time' }),
 });
-
 export type UserRoleDto = Static<typeof UserRoleDtoTSchema>;
 
 export const UserRoleDtoSchema = {
