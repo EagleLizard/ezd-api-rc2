@@ -5,11 +5,15 @@ import { IPgClient } from './pg-client';
 
 export const authzRepo = {
   getUserRoles: getUserRoles,
+  insertUserRole: insertUserRole,
   getRoleByName: getRoleByName,
   insertUsersUserRole: insertUsersUserRole,
   deleteUsersUserRole: deleteUsersUserRole,
   getUserPermissions: getUserPermissions,
   getRolePermissions: getRolePermissions,
+  insertRolePermission: insertRolePermission,
+  insertPermission: insertPermission,
+  getPermissionByName: getPermissionByName,
 } as const;
 
 async function getRolePermissions(
@@ -26,6 +30,22 @@ async function getRolePermissions(
   return permissionDtos;
 }
 
+async function insertRolePermission(
+  pgClient: IPgClient,
+  roleId: number,
+  permissionId: number
+): Promise<void> {
+  let queryStr = `
+    insert into role_permission (role_id, permission_id) values($1,$2)
+      ON CONFLICT DO NOTHING
+    returning *
+  `;
+  let queryRes = await pgClient.query(queryStr, [ roleId, permissionId ]);
+  if(queryRes.rows.length < 1) {
+    return;
+  }
+}
+
 async function getUserRoles(pgClient: IPgClient, userId: string): Promise<UserRoleDto[]> {
   let queryStr = `
     select ur.* from user_role ur
@@ -39,6 +59,16 @@ async function getUserRoles(pgClient: IPgClient, userId: string): Promise<UserRo
     userRoles.push(userRole);
   }
   return userRoles;
+}
+
+async function insertUserRole(pgClient: IPgClient, name: string): Promise<UserRoleDto> {
+  let queryStr = `
+    insert into user_role (role_name) values($1)
+    returning *
+  `;
+  let queryRes = await pgClient.query(queryStr, [ name ]);
+  let roleDto = UserRoleDtoSchema.decode(queryRes.rows[0]);
+  return roleDto;
 }
 
 async function getRoleByName(
@@ -85,4 +115,30 @@ async function getUserPermissions(pgClient: IPgClient, userId: string): Promise<
   let queryRes = await pgClient.query(queryStr, [ userId ]);
   let permissionDtos = queryRes.rows.map(PermissionDtoSchema.decode);
   return permissionDtos;
+}
+
+async function insertPermission(pgClient: IPgClient, name: string): Promise<PermissionDto> {
+  let queryStr = `
+    insert into permission (permission_name) values($1)
+    returning *
+  `;
+  let queryRes = await pgClient.query(queryStr, [ name ]);
+  let permissionDto = PermissionDtoSchema.decode(queryRes.rows[0]);
+  return permissionDto;
+}
+
+async function getPermissionByName(
+  pgClient: IPgClient,
+  name: string
+): Promise<PermissionDto | undefined> {
+  let queryStr = `
+    select p.* from permission p
+      where p.permission_name = $1
+    limit 1
+  `;
+  let queryRes = await pgClient.query(queryStr, [ name ]);
+  if(queryRes.rows.length < 1) {
+    return undefined;
+  }
+  return PermissionDtoSchema.decode(queryRes.rows[0]);
 }

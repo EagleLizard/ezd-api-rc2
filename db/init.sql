@@ -31,8 +31,8 @@ insert into permission (permission_name) values('users.read');
 insert into permission (permission_name) values('test.read');
 
 create table role_permission (
-  role_id INT references user_role(role_id) NOT NULL,
-  permission_id INT references permission(permission_id) NOT NULL,
+  role_id INT references user_role(role_id) ON DELETE CASCADE,
+  permission_id INT references permission(permission_id) ON DELETE CASCADE,
   PRIMARY KEY (role_id, permission_id),
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

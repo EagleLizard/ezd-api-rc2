@@ -21,6 +21,7 @@ export const authzService = {
   removeRoleFromUser: removeRoleFromUser,
   checkPermission: checkPermission,
   getUserPermissions: getUserPermissions,
+  createPermissionWithRole: createPermissionWithRole,
 } as const;
 
 async function getRolePermissions(roleId: UserRoleDto['role_id']): Promise<PermissionDto[]> {
@@ -33,6 +34,29 @@ async function checkPermission(userId: string, permission: string): Promise<bool
     return permissionDto.permission_name === permission;
   });
   return foundPermission !== undefined;
+}
+
+async function createPermissionWithRole(
+  roleName: string,
+  permissionName: string
+): Promise<PermissionDto> {
+  let permission: PermissionDto | undefined;
+  let txnClient = await PgClient.initClient();
+  try {
+    let role = await authzRepo.getRoleByName(txnClient, roleName);
+    permission = await authzRepo.getPermissionByName(txnClient, permissionName);
+    if(permission === undefined) {
+      permission = await authzRepo.insertPermission(txnClient, permissionName);
+    }
+    await authzRepo.insertRolePermission(txnClient, role.role_id, permission.permission_id);
+    await txnClient.query('COMMIT');
+  } catch(e) {
+    await txnClient.query('ROLLBACK');
+    throw e;
+  } finally {
+    txnClient.release();
+  }
+  return permission;
 }
 
 async function getUserPermissions(userId: string): Promise<PermissionResp[]> {

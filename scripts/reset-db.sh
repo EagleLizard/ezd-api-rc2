@@ -21,9 +21,12 @@ pRun() {
 main() {
   head;
   local skipUserContinuePrompt=false
-  while getopts "y" opt; do
+  local rebuild=false
+  # getopts: https://stackoverflow.com/a/34531699/4677252
+  while getopts "yb" opt; do
     case "$opt" in
       y) skipUserContinuePrompt=true ;;
+      b) rebuild=true ;;
       ?) fatal "invalid flag: $opt" ;;
     esac
   done
@@ -40,11 +43,16 @@ main() {
       exit 0
     fi
   fi
-  local dkcDownCmd="docker compose down --rmi all --remove-orphans postgres"
-  local dkcUpCmd="docker compose up -d --build --no-deps --force-recreate postgres"
-  pRun $dkcDownCmd;
-  pRun rm -rf ./ezd_api_pg_db_data
-  pRun $dkcUpCmd;
+  (
+    cd $parentDir && (
+      pRun ./scripts/run-db-image.sh stop;
+      pRun rm -rf ./ezd_api_pg_db_data;
+      if [ "$rebuild" = true ]; then
+        pRun ./scripts/build-db-image.sh;
+      fi
+      pRun ./scripts/run-db-image.sh;
+    );
+  );
 }
 
 main "$@"

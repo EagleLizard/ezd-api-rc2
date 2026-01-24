@@ -10,7 +10,6 @@ import {
 import { authService } from '../../lib/service/auth-service';
 import { RegisterUserBody, RegisterUserBodySchema } from '../../lib/models/register-user-body';
 import { ValidationError } from '../../lib/models/error/validation-error';
-import { authzService } from '../../lib/service/authz-service';
 
 const PostRegisterUserSchema = {
   body: Type.Object({
@@ -141,39 +140,14 @@ async function postUserLogout(
   return res.status(200).send();
 }
 
-const DeleteUserSchema = {
-  params: Type.Object({
-    userId: Type.String(),
-  }),
-  response: {
-    200: Type.Optional(Type.Object({})),
-    401: Type.Optional(Type.Object({})),
-  },
-} as const;
-type DeleteUser = typeof DeleteUserSchema;
-
-async function deleteUser(
-  req: FastifyRequestTypeBox<DeleteUser>,
-  res: FastifyReplyTypeBox<DeleteUser>,
-) {
-  if(req.ctx.user === undefined) {
-    return res.status(401).send();
-  }
-  await authzService.checkPermission(req.ctx.user.user_id, 'user.mgmt');
-  await userService.deleteUser(req.params.userId);
-  return res.status(200).send();
-}
-
 /*
   Exports
 _*/
 export const userAuthCtrl = {
-  DeleteUserSchema: DeleteUserSchema,
   PostRegisterUserSchema: PostRegisterUserSchema,
   PostUserLoginSchema: PostUserLoginSchema,
   PostUserLogoutSchema: PostUserLogoutSchema,
 
-  deleteUser: deleteUser,
   postRegisterUser: postRegisterUser,
   postUserLogin: postUserLogin,
   postUserLogout: postUserLogout,

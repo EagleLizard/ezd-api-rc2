@@ -7,6 +7,10 @@ The format is roughly reverse-chronological by date.
 ---
 ---
 
+[01/23/2026] 
+
+bash getopts usage: https://stackoverflow.com/a/34531699/4677252
+
 ## [01/07/2026] Secret Store naming
 
 I'm trying to think of a unique and original name for the interface / client I use to interact with whatever secret store I want to use, e.g. Google Cloud GCP  Secret Manager, AWS Secret Manager. Some ideas:

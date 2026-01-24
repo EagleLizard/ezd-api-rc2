@@ -7,7 +7,7 @@
     "start": "node --optimize_for_size --max_old_space_size=230 dist/main.js",
     "dev": "node --watch dist/main.js",
     "build:mime": "node dist/scripts/gen-mime-types.js",
-    "test": "vitest"
+    "test": "vitest --run"
   },
   "repository": {
     "type": "git",

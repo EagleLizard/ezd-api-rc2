@@ -3,6 +3,7 @@ import { secretClient } from './client/secret-client';
 import { ezdConfig } from './config';
 import { ValidationError } from './models/error/validation-error';
 import { UserDto } from './models/user-dto';
+import { authzService } from './service/authz-service';
 import { userService } from './service/user-service';
 
 export const apiInit = {
@@ -31,6 +32,9 @@ async function setupServer(): Promise<void> {
     userName: ezdConfig.EZD_API_USER_USERNAME,
     pwKey: 'EZD_API_PW',
   });
+  await authzService.createPermissionWithRole('ServerAdmin', 'user.create');
+  // await authzService.createPermissionWithRole('ServerAdmin', 'user.none');
+  // await authzService.createPermissionWithRole('Test', 'user.none');
 }
 
 async function createSystemUser(opts: {

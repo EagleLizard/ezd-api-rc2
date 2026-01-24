@@ -10,11 +10,13 @@ import { idGen } from '../lib/id-gen';
 import { authzRepo } from './authz-repo';
 
 export const userRepo = {
+  insertUser: insertUser,
   createUser: createUser,
   deleteUser: deleteUser,
   getUserById: getUserById,
   getUserByName: getUserByName,
   getPasswordByUserId: getPasswordByUserId,
+  insertPassword: insertPassword,
 } as const;
 
 async function getUserById(

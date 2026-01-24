@@ -11,7 +11,8 @@
     "outDir": "./dist",
     "strict": true,
     "noImplicitOverride": true,
-    "noUnusedLocals": true,
+    // "noUnusedLocals": true,
+    "noUnusedLocals": false,
     "esModuleInterop": true,
     "sourceMap": true,
     /* extend fastify types _*/

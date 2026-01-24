@@ -16,12 +16,14 @@ import { PgClient } from '../db/pg-client';
 import { sessionRepo } from '../db/session-repo';
 import { UserLoginDto } from '../models/user-login-dto';
 import { ezdConfig } from '../config';
+import { authzRepo } from '../db/authz-repo';
 
 export const userService = {
   getLoggedInUser: getLoggedInUserBySid,
   logoutUser: logoutUser,
   logInUser: logInUser,
   registerUser: registerUser,
+  createUser: createUser,
   deleteUser: deleteUser,
   getUserById: getUserById,
   getUserByName: getUserByName,
@@ -113,6 +115,49 @@ async function checkUserPassword(userName: string, password: string): Promise<Us
     );
   }
   return user;
+}
+
+async function createUser(name: string, email: string, password?: string): Promise<UserDto> {
+  if(!inputFormats.checkUserName(name)) {
+    throw new ValidationError(`Invalid username: '${name}'`);
+  }
+  if(!inputFormats.checkEmailAddr(email)) {
+    throw new ValidationError(`Invalid email: ${email}`);
+  }
+  if(password !== undefined && !inputFormats.checkPassword(password)) {
+    throw new ValidationError('Invalid password');
+  }
+  let roleNames: string[] = [ ezdConfig.EZD_DEFAULT_ROLE_NAME ];
+  /*
+    Some initial users have elevated roles out of necessity for when the
+      server initializes for the first time
+  _*/
+  if(
+    name === ezdConfig.EZD_SUPER_USER_USERNAME
+    || name === ezdConfig.EZD_API_USER_USERNAME
+  ) {
+    roleNames.push(ezdConfig.EZD_SUPER_USER_ROLE_NAME);
+  }
+  let userDto: UserDto;
+  let txnClient = await PgClient.initClient();
+  try {
+    userDto = await userRepo.insertUser(txnClient, name, email);
+    if(password !== undefined) {
+      await userRepo.insertPassword(txnClient, userDto.user_id, password);
+    }
+    for(let i = 0; i < roleNames.length; i++) {
+      let roleName = roleNames[i];
+      let roleDto = await authzRepo.getRoleByName(txnClient, roleName);
+      await authzRepo.insertUsersUserRole(txnClient, userDto.user_id, roleDto.role_id);
+    }
+    await txnClient.query('COMMIT');
+  } catch(e) {
+    await txnClient.query('ROLLBACK');
+    throw e;
+  } finally {
+    txnClient.release();
+  }
+  return userDto;
 }
 
 /*
