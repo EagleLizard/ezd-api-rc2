@@ -10,6 +10,9 @@ import {
 import { authService } from '../../lib/service/auth-service';
 import { RegisterUserBody, RegisterUserBodySchema } from '../../lib/models/register-user-body';
 import { ValidationError } from '../../lib/models/error/validation-error';
+import { authzService } from '../../lib/service/authz-service';
+import { inputFormats } from '../../util/input-formats';
+import { InvalidPasswordError } from '../../lib/models/error/invalid-password-error';
 
 const PostRegisterUserSchema = {
   body: Type.Object({
@@ -140,6 +143,93 @@ async function postUserLogout(
   return res.status(200).send();
 }
 
+const PostChangePw = {
+  body: Type.Object({
+    password: Type.Optional(Type.String()),
+    nextPassword: Type.String(),
+  }),
+  params: Type.Object({
+    userId: Type.String(),
+  }),
+  response: {
+    200: Type.Optional(Type.Object({})),
+    400: Type.Object({
+      code: Type.Optional(Type.String()),
+      message: Type.Optional(Type.String()),
+    }),
+    403: Type.Optional(Type.Object({})),
+  },
+} as const;
+type PostChangePw = typeof PostChangePw;
+async function postChangePassword(
+  req: FastifyRequestTypeBox<PostChangePw>,
+  res: FastifyReplyTypeBox<typeof PostChangePw>
+) {
+  let ctxUser = req.ctx.getUser();
+  /*
+    ctxUser can change password if:
+      1) ctxUser is the same user as the specified userId
+      2) ctxUser has relevant permission(s)
+  _*/
+  let hasChangePwPerms = await authzService.checkPermission(ctxUser.user_id, 'user.mgmt');
+  if((ctxUser.user_id !== req.params.userId) && !hasChangePwPerms) {
+    return res.status(403).send();
+  }
+  if(!hasChangePwPerms) {
+    /*
+      Privileged users can set user passwords without knowing the current password
+    _*/
+    if(req.body.password === undefined) {
+      return res.status(400).send({
+        message: `Missing required 'password' param`,
+      });
+    }
+    let checkPwRes = await userService.checkUserPassword(ctxUser.user_name, req.body.password);
+    if(checkPwRes instanceof Error) {
+      let err = checkPwRes;
+      if(!(err instanceof EzdError)) {
+        return res.status(400).send({
+          message: 'Invalid current password',
+        });
+      }
+      return res.status(400).send({
+        code: err.code,
+        message: err.message,
+      });
+    }
+  }
+  /*
+    check new password is valid:
+      1) pass normal password validation
+      2) not equal to current password
+  _*/
+  let nextPw = req.body.nextPassword;
+  let nextPwValid = inputFormats.checkPassword(nextPw);
+  if(!nextPwValid) {
+    return res.status(400).send({
+      message: 'Invalid next password',
+    });
+  }
+  let nextPwEqualsRes = await userService.checkUserPasswordByUserId(req.params.userId, nextPw);
+  let pwMatch: boolean;
+  if(nextPwEqualsRes instanceof EzdError) {
+    if(!(nextPwEqualsRes instanceof InvalidPasswordError)) {
+      return res.status(400).send({
+        message: nextPwEqualsRes.message,
+      });
+    }
+    pwMatch = false;
+  } else {
+    pwMatch = true;
+  }
+  if(pwMatch) {
+    return res.status(400).send({
+      message: 'Next password cannot be equal to current',
+    });
+  }
+  await userService.changePassword(req.params.userId, nextPw);
+  return res.status(200).send();
+}
 /*
   Exports
 _*/
@@ -147,8 +237,10 @@ export const userAuthCtrl = {
   PostRegisterUserSchema: PostRegisterUserSchema,
   PostUserLoginSchema: PostUserLoginSchema,
   PostUserLogoutSchema: PostUserLogoutSchema,
+  PostChangePw,
 
   postRegisterUser: postRegisterUser,
   postUserLogin: postUserLogin,
   postUserLogout: postUserLogout,
+  postChangePassword,
 } as const;

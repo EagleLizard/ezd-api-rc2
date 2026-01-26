@@ -17,6 +17,7 @@ import { sessionRepo } from '../db/session-repo';
 import { UserLoginDto } from '../models/user-login-dto';
 import { ezdConfig } from '../config';
 import { authzRepo } from '../db/authz-repo';
+import { InvalidPasswordError } from '../models/error/invalid-password-error';
 
 export const userService = {
   getLoggedInUser: getLoggedInUserBySid,
@@ -27,7 +28,9 @@ export const userService = {
   deleteUser: deleteUser,
   getUserById: getUserById,
   getUserByName: getUserByName,
+  changePassword: changePassword,
   checkUserPassword: checkUserPassword,
+  checkUserPasswordByUserId: checkUserPasswordByUserId,
 } as const;
 
 async function deleteUser(userId: string) {
@@ -90,6 +93,59 @@ async function getUserByName(userName: string) {
   return userRepo.getUserByName(userName);
 }
 
+/*
+  assumes prev. password already checked OR privileged user
+    i.e., the requesting user has access to change the target user's password
+_*/
+async function changePassword(userId: string, nextPw: string): Promise<void> {
+  /*
+    1) insert new password
+    2) delete old password(s)
+  _*/
+  let txnClient = await PgClient.initClient();
+  try {
+    await txnClient.query('BEGIN');
+    let pwId = await userRepo.insertPassword(txnClient, userId, nextPw);
+    await txnClient.query(`
+      delete from password p
+        where p.user_id = $1
+        and p.password_id != $2
+    `, [ userId, pwId ]);
+    await txnClient.query('COMMIT');
+  } catch(e) {
+    await txnClient.query('ROLLBACK');
+    throw e;
+  } finally {
+    txnClient.release();
+  }
+}
+
+async function checkUserPasswordByUserId(
+  userId: string,
+  password: string
+): Promise<UserDto | EzdError> {
+  let user = await userService.getUserById(userId);
+  if(user === undefined) {
+    return new NotFoundEzdError(`User not found, id: ${userId}`);
+  }
+  let pwDto = await userRepo.getPasswordByUserId(user.user_id);
+  if(pwDto === undefined) {
+    return new InvalidPasswordError(`No password for user: ${user.user_name}`);
+  }
+  let pwMatch = await authUtil.checkPasswordsEqual(
+    pwDto.password_hash,
+    pwDto.salt,
+    password,
+  );
+  if(!pwMatch) {
+    return new InvalidPasswordError(`Incalidpassword for user: ${user.user_name}`);
+  }
+  return user;
+}
+
+/*
+TODO: change this to call checkUserPasswordByUserId so these remain consistent
+_*/
 async function checkUserPassword(userName: string, password: string): Promise<UserDto | EzdError> {
   let user: UserDto | undefined;
   let passwordDto: PasswordDto | undefined;
@@ -141,6 +197,7 @@ async function createUser(name: string, email: string, password?: string): Promi
   let userDto: UserDto;
   let txnClient = await PgClient.initClient();
   try {
+    await txnClient.query('BEGIN');
     userDto = await userRepo.insertUser(txnClient, name, email);
     if(password !== undefined) {
       await userRepo.insertPassword(txnClient, userDto.user_id, password);

@@ -130,7 +130,7 @@ async function getPasswordByUserId(userId: string): Promise<PasswordDto | undefi
   let queryStr = `
     select * from password p
       where p.user_id = $1
-      order by p.created_at
+      order by p.created_at desc
       limit 1
   `;
   let queryRes = await PgClient.query(queryStr, [ userId ]);

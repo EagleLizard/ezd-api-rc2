@@ -26,8 +26,8 @@ const GetUsersSchema = {
       roles: Type.Optional(Type.Array(RoleRespSchema)),
       permissions: Type.Optional(Type.Array(PermissionRespSchema))
     }),
+    400: Type.Optional(Type.String()),
     401: Type.Optional(Type.Object({})),
-    404: Type.Optional(Type.String()),
   }
 } as const;
 type GetUsers = typeof GetUsersSchema;
@@ -42,7 +42,7 @@ async function getUsers(
   username = req.query.name;
   user = await userService.getUserByName(username);
   if(user === undefined) {
-    return res.status(404).send('404 - User not found');
+    return res.status(400).send('User not found');
   }
   let permissions: PermissionResp[] | undefined;
   let roles: RoleResp[] | undefined;

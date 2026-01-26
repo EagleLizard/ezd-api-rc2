@@ -46,9 +46,13 @@ export function registerAuthNRoutes(app: FastifyInstance) {
     schema: userCtrl.DeleteUserSchema,
   }, userCtrl.deleteUser);
 
+  app.post('/v1/user/:userId/pw', {
+    schema: userAuthCtrl.PostChangePw,
+  }, userAuthCtrl.postChangePassword);
   app.post('/v1/user/logout', {
     schema: userAuthCtrl.PostUserLogoutSchema
   }, userAuthCtrl.postUserLogout);
+
   app.get('/v1/user/:userId/role', {
     schema: userAuthzCtrl.GetUserRolesSchema
   }, userAuthzCtrl.getUserRoles);
