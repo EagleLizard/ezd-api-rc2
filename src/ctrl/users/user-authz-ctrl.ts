@@ -25,7 +25,7 @@ async function getUserRoles(
   if(req.ctx.user?.user_id === undefined) {
     throw new EzdError('user_id missing from request context', 'EZD_2.1');
   }
-  let userRoles = await authzService.getRoles(req.params.userId);
+  let userRoles = await authzService.getUserRoles(req.params.userId);
   return res.status(200).send(userRoles);
 }
 

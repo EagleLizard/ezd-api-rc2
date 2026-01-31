@@ -12,6 +12,7 @@ import { userCtrl } from './ctrl/users/user-ctrl';
 import { userAuthzCtrl } from './ctrl/users/user-authz-ctrl';
 import { Metrics } from './lib/lib/metrics';
 import { FastifyTypeBox } from './lib/models/fastify/fastify-typebox';
+import { authzCtrl } from './ctrl/authz/authz-ctrl';
 
 export function registerRoutes(app: FastifyTypeBox) {
   app.get('/health', getHealthCtrl);
@@ -65,4 +66,18 @@ export function registerAuthNRoutes(app: FastifyInstance) {
   app.get('/v1/user/:userId/permission', {
     schema: userAuthzCtrl.GetUserPermissionsSchema,
   }, userAuthzCtrl.getUserPermissions);
+
+  app.get('/v1/authz/role', {
+    schema: authzCtrl.GetRoles
+  }, authzCtrl.getRoles);
+  app.post('/v1/authz/role', {
+    schema: authzCtrl.CreateRole,
+  }, authzCtrl.createRole);
+  app.delete('/v1/authz/role/:roleId', {
+    schema: authzCtrl.DeleteRole,
+  }, authzCtrl.deleteRole);
+
+  app.get('/v1/authz/perm', {
+    schema: authzCtrl.GetPermissions
+  }, authzCtrl.getPermissions);
 }

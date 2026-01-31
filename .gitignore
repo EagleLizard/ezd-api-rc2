@@ -14,3 +14,4 @@ logs
 extern-tmp
 
 ezd_api_pg_db_data
+gcp-private-key.json

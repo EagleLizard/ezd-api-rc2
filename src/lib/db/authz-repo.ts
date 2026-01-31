@@ -1,11 +1,17 @@
+
+import { prim } from '../../util/validate-primitives';
 import { PermissionDto, PermissionDtoSchema } from '../models/authz/permission-dto';
 import { UserRoleDto, UserRoleDtoSchema } from '../models/authz/user-role-dto';
 import { EzdError } from '../models/error/ezd-error';
 import { IPgClient } from './pg-client';
 
 export const authzRepo = {
+  getRoles: getRoles,
+  getRoleWithPermissionsByName: getRoleWithPermissionsByName,
+  getRolesWithPermissions: getRolesWithPermissions,
   getUserRoles: getUserRoles,
   insertUserRole: insertUserRole,
+  deleteUserRole: deleteUserRole,
   getRoleByName: getRoleByName,
   insertUsersUserRole: insertUsersUserRole,
   deleteUsersUserRole: deleteUsersUserRole,
@@ -13,6 +19,7 @@ export const authzRepo = {
   getRolePermissions: getRolePermissions,
   insertRolePermission: insertRolePermission,
   insertPermission: insertPermission,
+  getPermissions: getPermissions,
   getPermissionByName: getPermissionByName,
 } as const;
 
@@ -46,6 +53,83 @@ async function insertRolePermission(
   }
 }
 
+async function getRoles(pgClient: IPgClient): Promise<UserRoleDto[]> {
+  let queryRes = await pgClient.query(`
+    select ur.* from user_role ur
+    order by ur.created_at desc
+  `);
+  let roles = queryRes.rows.map(UserRoleDtoSchema.decode);
+  return roles;
+}
+
+async function getRoleWithPermissionsByName(
+  pgClient: IPgClient,
+  role_name: string,
+): Promise<[UserRoleDto, PermissionDto[]]> {
+  let getRolesResp = await getRolesWithPermissions(pgClient, { role_name });
+  return getRolesResp[0];
+}
+
+async function getRolesWithPermissions(
+  pgClient: IPgClient,
+  opts: {
+    role_name?: string
+  } = {}
+): Promise<[UserRoleDto, PermissionDto[]][]> {
+  let queryVals: [ role_name?: string ] = [];
+  let queryStr = `
+    select ur.*, p.permission_id, p.permission_name from user_role ur
+      left join role_permission rp on rp.role_id = ur.role_id
+      left join permission p on p.permission_id = rp.permission_id
+  `;
+  if(opts.role_name !== undefined) {
+    queryStr = `${queryStr}
+      where ur.role_name = $1
+    `;
+    queryVals = [ opts.role_name ];
+  }
+  let queryRes = await pgClient.query(queryStr, queryVals);
+  if(!queryRes.rows.every(prim.isObject)) {
+    throw new EzdError('Invalid query result', 'EZD_3.5');
+  }
+  let rolePermTupleMap: Map<
+    UserRoleDto['role_id'],
+    [UserRoleDto, Map<PermissionDto['permission_id'], PermissionDto>]
+  > = new Map();
+  for(let i = 0; i < queryRes.rows.length; i++) {
+    let row = queryRes.rows[i];
+    let roleDto = UserRoleDtoSchema.decode({
+      role_id: row.role_id,
+      role_name: row.role_name,
+      created_at: row.created_at,
+      modified_at: row.modified_at,
+    });
+    let rolePermTuple = rolePermTupleMap.get(roleDto.role_id);
+    if(rolePermTuple === undefined) {
+      rolePermTuple = [ roleDto, new Map() ];
+      rolePermTupleMap.set(roleDto.role_id, rolePermTuple);
+    }
+    if(row.permission_id !== null) {
+      let permMap = rolePermTuple[1];
+      let permDto = PermissionDtoSchema.decode({
+        permission_id: row.permission_id,
+        permission_name: row.permission_name,
+        created_at: row.created_at,
+        modified_at: row.modified_at,
+      });
+      if(!permMap.has(permDto.permission_id)) {
+        permMap.set(permDto.permission_id, permDto);
+      }
+    }
+  }
+  let resTuples: [UserRoleDto, PermissionDto[]][] = [];
+  rolePermTupleMap.values().forEach(rolePermTuple => {
+    let [ roleDto, permMap ] = rolePermTuple;
+    resTuples.push([ roleDto, [ ...permMap.values() ]]);
+  });
+  return resTuples;
+}
+
 async function getUserRoles(pgClient: IPgClient, userId: string): Promise<UserRoleDto[]> {
   let queryStr = `
     select ur.* from user_role ur
@@ -69,6 +153,13 @@ async function insertUserRole(pgClient: IPgClient, name: string): Promise<UserRo
   let queryRes = await pgClient.query(queryStr, [ name ]);
   let roleDto = UserRoleDtoSchema.decode(queryRes.rows[0]);
   return roleDto;
+}
+
+async function deleteUserRole(pgClient: IPgClient, roleId: UserRoleDto['role_id']): Promise<void> {
+  await pgClient.query(`
+    delete from user_role ur
+      where ur.role_id = $1
+  `, [ roleId ]);
 }
 
 async function getRoleByName(
@@ -125,6 +216,14 @@ async function insertPermission(pgClient: IPgClient, name: string): Promise<Perm
   let queryRes = await pgClient.query(queryStr, [ name ]);
   let permissionDto = PermissionDtoSchema.decode(queryRes.rows[0]);
   return permissionDto;
+}
+
+async function getPermissions(pgClient: IPgClient): Promise<PermissionDto[]> {
+  let queryRes = await pgClient.query(`
+    select p.* from permission p
+  `);
+  let permissionDtos = queryRes.rows.map(PermissionDtoSchema.decode);
+  return permissionDtos;
 }
 
 async function getPermissionByName(

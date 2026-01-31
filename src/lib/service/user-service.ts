@@ -2,7 +2,7 @@
 import { FastifySessionObject } from '@fastify/session';
 
 import { inputFormats } from '../../util/input-formats';
-import { userRepo } from '../db/user-repo';
+import { GetUserWithAuthzOpts, userRepo } from '../db/user-repo';
 import { ValidationError } from '../models/error/validation-error';
 import { PasswordDto } from '../models/password-dto';
 import { RegisterUserBody } from '../models/register-user-body';
@@ -18,16 +18,21 @@ import { UserLoginDto } from '../models/user-login-dto';
 import { ezdConfig } from '../config';
 import { authzRepo } from '../db/authz-repo';
 import { InvalidPasswordError } from '../models/error/invalid-password-error';
+import { GetUserRespItem } from '../models/user/get-user-resp';
+import { authzService } from './authz-service';
 
 export const userService = {
   getLoggedInUser: getLoggedInUserBySid,
   logoutUser: logoutUser,
   logInUser: logInUser,
   registerUser: registerUser,
+  getUsers: getUsers,
   createUser: createUser,
   deleteUser: deleteUser,
   getUserById: getUserById,
   getUserByName: getUserByName,
+  getGetUsersResp: getGetUsersResp,
+  getGetUserRespByName: getGetUserRespByName,
   changePassword: changePassword,
   checkUserPassword: checkUserPassword,
   checkUserPasswordByUserId: checkUserPasswordByUserId,
@@ -85,12 +90,59 @@ async function logInUser(
   return userLogin;
 }
 
+async function getUsers() {
+  return userRepo.getUsers(PgClient);
+}
+
 async function getUserById(userId: UserDto['user_id']) {
   return userRepo.getUserById(PgClient, userId);
 }
 
 async function getUserByName(userName: string) {
   return userRepo.getUserByName(userName);
+}
+
+async function getGetUsersResp(
+  asUserId: string,
+  opts: GetUserWithAuthzOpts = {}
+): Promise<GetUserRespItem[]> {
+  let includePermissions = opts.withPermissions && await authzService.checkPermission(
+    asUserId,
+    'user.mgmt'
+  );
+  let includeRoles = opts.withRoles && await authzService.checkPermission(
+    asUserId,
+    'user.mgmt'
+  );
+  return userRepo.getUsersWithAuthz(PgClient, {
+    withPermissions: includePermissions,
+    withRoles: includeRoles,
+  });
+}
+
+async function getGetUserRespByName(
+  asUserId: string,
+  name: string,
+  opts: GetUserWithAuthzOpts = {},
+): Promise<GetUserRespItem | undefined> {
+  let user = await userService.getUserByName(name);
+  if(user === undefined) {
+    return undefined;
+  }
+  let includePermissions = opts.withPermissions && (
+    (asUserId === user.user_id) || await authzService.checkPermission(
+      asUserId,
+      'user.mgmt'
+    ));
+  let includeRoles = opts.withRoles && (
+    (asUserId === user.user_id) || await authzService.checkPermission(
+      asUserId,
+      'user.mgmt'
+    ));
+  return userRepo.getUserWithAuthzByName(PgClient, name, {
+    withPermissions: includePermissions,
+    withRoles: includeRoles,
+  });
 }
 
 /*
@@ -138,7 +190,7 @@ async function checkUserPasswordByUserId(
     password,
   );
   if(!pwMatch) {
-    return new InvalidPasswordError(`Incalidpassword for user: ${user.user_name}`);
+    return new InvalidPasswordError(`Invalid password for user: ${user.user_name}`);
   }
   return user;
 }

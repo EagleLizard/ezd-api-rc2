@@ -12,6 +12,7 @@ export type UserInfo = Static<typeof UserInfoTSchema>;
 
 export const UserInfoSchema = {
   decode: userInfoDecode,
+  schema: UserInfoTSchema,
 };
 
 function userInfoDecode(rawVal: unknown): UserInfo {

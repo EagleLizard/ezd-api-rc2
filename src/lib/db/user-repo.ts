@@ -8,16 +8,38 @@ import { authUtil } from '../lib/auth-util';
 import { EzdError } from '../models/error/ezd-error';
 import { idGen } from '../lib/id-gen';
 import { authzRepo } from './authz-repo';
+import { GetUserRespItem } from '../models/user/get-user-resp';
+import { prim } from '../../util/validate-primitives';
+import { UserInfoSchema } from '../models/user-info';
+import {
+  PermissionResp,
+  PermissionRespSchema,
+  RoleResp,
+  RoleRespSchema,
+} from '../models/authz/role-resp';
+import { MapVal } from '../../util/type-util';
 
 export const userRepo = {
+  getUsers: getUsers,
   insertUser: insertUser,
   createUser: createUser,
   deleteUser: deleteUser,
   getUserById: getUserById,
   getUserByName: getUserByName,
+  getUsersWithAuthz: getUsersWithAuthz,
+  getUserWithAuthzByName: getUserWithAuthzByName,
   getPasswordByUserId: getPasswordByUserId,
   insertPassword: insertPassword,
 } as const;
+
+async function getUsers(pgClient: IPgClient): Promise<UserDto[]> {
+  let queryRes = await pgClient.query(`
+    select * from users u
+    order by u.created_at desc
+  `);
+  let users = queryRes.rows.map(UserDtoSchema.decode);
+  return users;
+}
 
 async function getUserById(
   pgClient: IPgClient,
@@ -47,6 +69,107 @@ async function getUserByName(userName: string): Promise<UserDto | undefined> {
   }
   let userDto = UserDtoSchema.decode(queryRes.rows[0]);
   return userDto;
+}
+
+export type GetUserWithAuthzOpts = {
+  withRoles?: boolean;
+  withPermissions?: boolean;
+} & {};
+async function getUserWithAuthzByName(
+  pgClient: IPgClient,
+  name: string,
+  opts: GetUserWithAuthzOpts = {}
+): Promise<GetUserRespItem | undefined> {
+  let getUsersOpts = Object.assign({
+    username: name,
+  }, opts);
+  let getUsersRes = await getUsersWithAuthz(pgClient, getUsersOpts);
+  return getUsersRes[0];
+}
+
+type GetUsersWithAuthzOpts = GetUserWithAuthzOpts & {
+  username?: string;
+} & {};
+async function getUsersWithAuthz(
+  pgClient: IPgClient,
+  opts: GetUsersWithAuthzOpts = {}
+): Promise<GetUserRespItem[]> {
+  let queryStr = `
+    select u.*, p.permission_id, p.permission_name, ur.role_id, ur.role_name from users u
+      inner join users_user_role uur on uur.user_id = u.user_id
+      inner join user_role ur on ur.role_id = uur.role_id
+      left join role_permission rp on rp.role_id = ur.role_id
+      left join permission p on p.permission_id = rp.permission_id
+  `;
+  let queryVals: [ username?: string ] = [];
+  if(opts.username !== undefined) {
+    queryStr = `${queryStr}
+      where u.user_name = $1;
+    `;
+    queryVals = [ opts.username ];
+  }
+  let queryRes = await pgClient.query(queryStr, queryVals);
+  if(!queryRes.rows.every(row => prim.isObject(row))) {
+    throw new EzdError('Invalid query result', 'EZD_3.5');
+  }
+  let respItemMap: Map<GetUserRespItem['user']['user_id'], {
+    user: GetUserRespItem['user'],
+    permMap: Map<PermissionResp['id'], PermissionResp>,
+    roleMap: Map<RoleResp['id'], RoleResp>,
+  }> = new Map();
+  for(let i = 0; i < queryRes.rows.length; i++) {
+    let row = queryRes.rows[i];
+    let respItem: MapVal<typeof respItemMap>;
+    let user: GetUserRespItem['user'] = UserInfoSchema.decode({
+      user_id: row.user_id,
+      user_name: row.user_name,
+      email: row.user_name,
+      created_at: row.created_at,
+      modified_at: row.modified_at,
+    });
+    if(respItemMap.has(user.user_id)) {
+      respItem = respItemMap.get(user.user_id)!;
+    } else {
+      respItem = {
+        user: user,
+        permMap: new Map(),
+        roleMap: new Map(),
+      };
+      respItemMap.set(user.user_id, respItem);
+    }
+    if(opts.withPermissions && (row.permission_id !== undefined)) {
+      let perm = PermissionRespSchema.decode({
+        id: row.permission_id,
+        name: row.permission_name,
+      });
+      if(!respItem.permMap.has(perm.id)) {
+        respItem.permMap.set(perm.id, perm);
+      }
+    }
+    if(opts.withRoles && (row.role_id !== undefined)) {
+      let role = RoleRespSchema.decode({
+        id: row.role_id,
+        name: row.role_name,
+      });
+      if(!respItem.roleMap.has(role.id)) {
+        respItem.roleMap.set(role.id, role);
+      }
+    }
+  }
+  let respItems: GetUserRespItem[] = [];
+  respItemMap.forEach((val) => {
+    let respItem: GetUserRespItem = {
+      user: val.user,
+    };
+    if(val.permMap.size > 0) {
+      respItem.permissions = [ ...val.permMap.values() ];
+    }
+    if(val.roleMap.size > 0) {
+      respItem.roles = [ ...val.roleMap.values() ];
+    }
+    respItems.push(respItem);
+  });
+  return respItems;
 }
 
 async function createUser(

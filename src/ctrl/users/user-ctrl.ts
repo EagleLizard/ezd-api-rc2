@@ -5,27 +5,19 @@ import {
   FastifyReplyTypeBox,
   FastifyRequestTypeBox
 } from '../../lib/models/fastify/fastify-typebox';
-import { UserDto, UserDtoSchema } from '../../lib/models/user-dto';
+import { UserDtoSchema } from '../../lib/models/user-dto';
 import { userService } from '../../lib/service/user-service';
-import {
-  PermissionResp,
-  PermissionRespSchema,
-  RoleResp,
-  RoleRespSchema
-} from '../../lib/models/authz/role-resp';
 import { authzService } from '../../lib/service/authz-service';
-import { UserInfo, UserInfoSchema } from '../../lib/models/user-info';
+import { GetUserRespItem } from '../../lib/models/user/get-user-resp';
 
 const GetUsersSchema = {
   querystring: Type.Object({
-    name: Type.String(),
+    name: Type.Optional(Type.String()),
+    permissions: Type.Optional(Type.Boolean()),
+    roles: Type.Optional(Type.Boolean()),
   }),
   response: {
-    200: Type.Object({
-      user: UserInfoSchema,
-      roles: Type.Optional(Type.Array(RoleRespSchema)),
-      permissions: Type.Optional(Type.Array(PermissionRespSchema))
-    }),
+    200: Type.Union([ GetUserRespItem, Type.Array(GetUserRespItem) ]),
     400: Type.Optional(Type.String()),
     401: Type.Optional(Type.Object({})),
   }
@@ -36,40 +28,25 @@ async function getUsers(
   req: FastifyRequestTypeBox<GetUsers>,
   res: FastifyReplyTypeBox<GetUsers>
 ) {
-  let user: UserDto | undefined;
-  let username: string;
   let ctxUser = req.ctx.getUser();
-  username = req.query.name;
-  user = await userService.getUserByName(username);
-  if(user === undefined) {
-    return res.status(400).send('User not found');
+  let username = req.query.name;
+  if(username !== undefined) {
+    /* return specified user if found _*/
+    let userWithAUthz = await userService.getGetUserRespByName(ctxUser.user_id, username, {
+      withPermissions: req.query.permissions,
+      withRoles: req.query.roles,
+    });
+    if(userWithAUthz === undefined) {
+      return res.status(400).send('User not found');
+    }
+    return res.status(200).send(userWithAUthz);
   }
-  let permissions: PermissionResp[] | undefined;
-  let roles: RoleResp[] | undefined;
-  let includePermissions = (ctxUser.user_id === user.user_id)
-    || await authzService.checkPermission(ctxUser.user_id, 'user.mgmt')
-  ;
-  let includeRoles = (ctxUser.user_id === user.user_id)
-    || await authzService.checkPermission(ctxUser.user_id, 'user.mgmt')
-  ;
-  if(includePermissions) {
-    permissions = await authzService.getUserPermissions(user.user_id);
-  }
-  if(includeRoles) {
-    roles = await authzService.getRoles(user.user_id);
-  }
-  /*
-    Default) respond with basic user info
-      - TODO: may want logic here to return more detailed user info for
-        users with certain administrative privileges
-  _*/
-  let userInfo: UserInfo;
-  userInfo = user;
-  await res.status(200).send({
-    user: userInfo,
-    permissions: permissions,
-    roles: roles,
+  /* return list of users _*/
+  let users = await userService.getGetUsersResp(ctxUser.user_id, {
+    withPermissions: req.query.permissions,
+    withRoles: req.query.roles,
   });
+  return res.status(200).send(users);
 }
 
 const DeleteUserSchema = {

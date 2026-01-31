@@ -6,6 +6,14 @@ import { UserDto } from './models/user-dto';
 import { authzService } from './service/authz-service';
 import { userService } from './service/user-service';
 
+const super_user_perms = [
+  'user.create',
+  'role.create',
+  'role.delete',
+  'role.read',
+  'permission.read',
+];
+
 export const apiInit = {
   setupServer: setupServer,
 } as const;
@@ -27,14 +35,22 @@ async function setupServer(): Promise<void> {
     userName: ezdConfig.EZD_SUPER_USER_USERNAME,
     pwKey: 'EZD_ADMIN_PW',
   });
-  await createSystemUser({
+  let apiUser = await createSystemUser({
     email: ezdConfig.EZD_API_USER_EMAIL,
     userName: ezdConfig.EZD_API_USER_USERNAME,
     pwKey: 'EZD_API_PW',
   });
-  await authzService.createPermissionWithRole('ServerAdmin', 'user.create');
+  for(let i = 0; i < super_user_perms.length; i++) {
+    let superUserPermName = super_user_perms[i];
+    await authzService.createPermissionWithRole('ServerAdmin', superUserPermName);
+  }
+  // await authzService.createPermissionWithRole('ServerAdmin', 'user.create');
+  // await authzService.createPermissionWithRole('ServerAdmin', 'role.create');
+  // await authzService.createPermissionWithRole('ServerAdmin', 'role.read');
   // await authzService.createPermissionWithRole('ServerAdmin', 'user.none');
   // await authzService.createPermissionWithRole('Test', 'user.none');
+  let noPermRole = await authzService.createRole(apiUser.user_id, 'NoPermissions');
+  await authzService.addRoleToUser(apiUser.user_id, noPermRole.role_name);
 }
 
 async function createSystemUser(opts: {

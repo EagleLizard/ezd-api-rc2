@@ -16,9 +16,15 @@ export const ezdErrorCodes = {
   db_invalid_return_type: 'EZD_3.2',
   db_role_not_found: 'EZD_3.3',
   db_user_not_found: 'EZD_3.4',
+  db_invalid_query_result: 'EZD_3.5',
 
   SERVER_MISSING_CTX: 'EZD_4.0',
   SERVER_MISSING_CTX_STATIC: 'EZD_4.1',
+
+  permission_denied_create_role: 'EZD_5.0',
+  permission_denied_get_roles: 'EZD_5.1',
+  permission_denied_get_permissions: 'EZD_5.2',
+  permission_denied_delete_role: 'EZD_5.3',
 } as const;
 
 export type EzdErrorCode = typeof ezdErrorCodes[keyof typeof ezdErrorCodes];
