@@ -25,3 +25,10 @@ export const external_temp_dir_path = [
   BASE_DIR,
   external_temp_dir_name,
 ].join(path.sep);
+
+/* dev, cache */
+const jcd_cache_dir_name = '_jcd_cache';
+export const jcd_cache_dir_path = [
+  BASE_DIR,
+  jcd_cache_dir_name,
+].join(path.sep);

@@ -12,6 +12,7 @@ const super_user_perms = [
   'role.delete',
   'role.read',
   'permission.read',
+  'jcd.proj.read',
 ];
 
 export const apiInit = {

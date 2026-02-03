@@ -3,10 +3,7 @@ import { Type, Static } from 'typebox';
 import { userService } from '../../lib/service/user-service';
 import { UserDto, UserDtoSchema } from '../../lib/models/user-dto';
 import { EzdError } from '../../lib/models/error/ezd-error';
-import {
-  FastifyReplyTypeBox,
-  FastifyRequestTypeBox
-} from '../../lib/models/fastify/fastify-typebox';
+import { RepTB, ReqTB } from '../../lib/models/fastify/fastify-typebox';
 import { authService } from '../../lib/service/auth-service';
 import { RegisterUserBody, RegisterUserBodySchema } from '../../lib/models/register-user-body';
 import { ValidationError } from '../../lib/models/error/validation-error';
@@ -32,8 +29,8 @@ const PostRegisterUserSchema = {
 type PostRegisterUser = typeof PostRegisterUserSchema;
 
 async function postRegisterUser(
-  req: FastifyRequestTypeBox<PostRegisterUser>,
-  res: FastifyReplyTypeBox<PostRegisterUser>,
+  req: ReqTB<PostRegisterUser>,
+  res: RepTB<PostRegisterUser>,
 ) {
   let body: RegisterUserBody;
   if(!RegisterUserBodySchema.check(req.body)) {
@@ -80,8 +77,8 @@ const PostUserLoginSchema = {
 type PostUserLogin = typeof PostUserLoginSchema;
 
 async function postUserLogin(
-  req: FastifyRequestTypeBox<PostUserLogin>,
-  res: FastifyReplyTypeBox<PostUserLogin>
+  req: ReqTB<PostUserLogin>,
+  res: RepTB<PostUserLogin>
 ) {
   let user: UserDto | Error | undefined;
   let respOk: Static<PostUserLogin['response'][200]>;
@@ -110,7 +107,9 @@ async function postUserLogin(
 
   respOk = { user: user };
   if(req.query.withJwt === true) {
-    respOk.token = await authService.getJwt(user);
+    respOk.token = authService.getJwt(user.user_id, {
+      exp: Math.ceil(Date.now() / 1000) + (60 * 60 * 24 * 7)
+    });
   }
 
   res.setCookie('ezd_user', user.user_name);
@@ -131,8 +130,8 @@ const PostUserLogoutSchema = {
 type PostUserLogout = typeof PostUserLogoutSchema;
 
 async function postUserLogout(
-  req: FastifyRequestTypeBox<PostUserLogout>,
-  res: FastifyReplyTypeBox<PostUserLogout>,
+  req: ReqTB<PostUserLogout>,
+  res: RepTB<PostUserLogout>,
 ) {
   let user: UserDto | undefined;
   user = req.ctx.user;
@@ -162,8 +161,8 @@ const PostChangePw = {
 } as const;
 type PostChangePw = typeof PostChangePw;
 async function postChangePassword(
-  req: FastifyRequestTypeBox<PostChangePw>,
-  res: FastifyReplyTypeBox<typeof PostChangePw>
+  req: ReqTB<PostChangePw>,
+  res: RepTB<typeof PostChangePw>
 ) {
   let ctxUser = req.ctx.getUser();
   /*

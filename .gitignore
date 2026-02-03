@@ -13,5 +13,6 @@ build
 logs
 extern-tmp
 
+_jcd_cache
 ezd_api_pg_db_data
 gcp-private-key.json

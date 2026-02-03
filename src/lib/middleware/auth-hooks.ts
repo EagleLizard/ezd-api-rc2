@@ -19,7 +19,7 @@ async function authNPreHandler(req: FastifyRequest, res: FastifyReply) {
     && req.headers.authorization.startsWith(bearer_header_prefix)
   ) {
     let token = req.headers.authorization.substring(bearer_header_prefix.length);
-    let validToken = await authService.checkJwt(token);
+    let validToken = authService.checkJwt(token);
     let tokenUserId = validToken?.payload.userId;
     if(!validToken || tokenUserId === undefined) {
       return res.status(401).send();

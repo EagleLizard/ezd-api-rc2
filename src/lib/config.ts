@@ -26,6 +26,7 @@ const ezdConfig = {
   EZD_SUPER_USER_ROLE_NAME: 'ServerAdmin',
 
   SYSTEM_SECRET_EXPIRATION: process.env['SYSTEM_SECRET_EXPIRATION'],
+  USE_JCD_CACHE: getBoolEnvVar('USE_JCD_CACHE'),
 
   isDevEnv: isDevEnv,
 } as const;
@@ -45,6 +46,15 @@ function getEnvVarOrErr(envKey: string): string {
     throw new Error(`Invalid ${envKey}`);
   }
   return rawEnvVar;
+}
+
+function getBoolEnvVar(envKey: string): boolean {
+  let rawVar = process.env[envKey];
+  /* manually parse bool _*/
+  if(rawVar === undefined) {
+    return false;
+  }
+  return rawVar.toLowerCase() === 'true';
 }
 
 function getNumberEnvVar(envKey: string): number {

@@ -1,9 +1,6 @@
 
 import { Type } from 'typebox';
-import {
-  FastifyReplyTypeBox,
-  FastifyRequestTypeBox
-} from '../../lib/models/fastify/fastify-typebox';
+import { RepTB, ReqTB } from '../../lib/models/fastify/fastify-typebox';
 import { authzService } from '../../lib/service/authz-service';
 import { EzdError } from '../../lib/models/error/ezd-error';
 import {
@@ -25,8 +22,8 @@ const GetRoles = {
 } as const;
 type GetRoles = typeof GetRoles;
 async function getRoles(
-  req: FastifyRequestTypeBox<GetRoles>,
-  res: FastifyReplyTypeBox<GetRoles>
+  req: ReqTB<GetRoles>,
+  res: RepTB<GetRoles>
 ) {
   let ctxUser = req.ctx.getUser();
   let withPermissions = req.query.permissions === true;
@@ -61,8 +58,8 @@ const CreateRole = {
 } as const;
 type CreateRole = typeof CreateRole;
 async function createRole(
-  req: FastifyRequestTypeBox<CreateRole>,
-  res: FastifyReplyTypeBox<CreateRole>
+  req: ReqTB<CreateRole>,
+  res: RepTB<CreateRole>
 ) {
   let ctxUser = req.ctx.getUser();
   let roleDto: UserRoleDto;
@@ -88,8 +85,8 @@ const DeleteRole = {
 } as const;
 type DeleteRole = typeof DeleteRole;
 async function deleteRole(
-  req: FastifyRequestTypeBox<DeleteRole>,
-  res: FastifyReplyTypeBox<DeleteRole>,
+  req: ReqTB<DeleteRole>,
+  res: RepTB<DeleteRole>,
 ) {
   let ctxUser = req.ctx.getUser();
   try {
@@ -111,8 +108,8 @@ const GetPermissions = {
 } as const;
 type GetPermissions = typeof GetPermissions;
 async function getPermissions(
-  req: FastifyRequestTypeBox<GetPermissions>,
-  res: FastifyReplyTypeBox<GetPermissions>
+  req: ReqTB<GetPermissions>,
+  res: RepTB<GetPermissions>
 ) {
   let ctxUser = req.ctx.getUser();
   let permissions: PermissionResp[];

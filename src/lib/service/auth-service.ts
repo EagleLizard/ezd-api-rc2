@@ -17,23 +17,18 @@ type GetJwtOpts = {
   exp?: number;
 } & {};
 
-async function getJwt(user: UserDto, opts: GetJwtOpts = {}): Promise<string> {
-  let token: string;
-  let payload: JwtPayload;
-  let iss = opts.iss ?? jwtConfig.ezdApiIssuer;
-  let aud = opts.aud ?? 'ezd-user';
-  let exp = opts.exp ?? Math.ceil(Date.now() / 1000) + 7200;
-  payload = {
-    iss: iss,
-    aud: aud,
-    exp: exp,
-    userId: user.user_id,
+function getJwt(userId: UserDto['user_id'], opts: GetJwtOpts = {}): string {
+  let payload: JwtPayload = {
+    iss: opts.iss ?? jwtConfig.ezdApiIssuer,
+    aud: opts.aud ?? 'ezd-user',
+    exp: opts.exp ?? Math.ceil(Date.now() / 1000) + 7200,
+    userId: userId,
   };
-  token = jwt.sign(payload, ezdConfig.EZD_JWT_SECRET);
+  let token = jwt.sign(payload, ezdConfig.EZD_JWT_SECRET);
   return token;
 }
 
-async function checkJwt(token: string): Promise<DecodedJwt | undefined> {
+function checkJwt(token: string): DecodedJwt | undefined {
   let valid: boolean;
   try {
     valid = jwt.verify(token, ezdConfig.EZD_JWT_SECRET);

@@ -1,10 +1,7 @@
 
 import { Type } from 'typebox';
 
-import {
-  FastifyReplyTypeBox,
-  FastifyRequestTypeBox
-} from '../../lib/models/fastify/fastify-typebox';
+import { RepTB, ReqTB } from '../../lib/models/fastify/fastify-typebox';
 import { UserDtoSchema } from '../../lib/models/user-dto';
 import { userService } from '../../lib/service/user-service';
 import { authzService } from '../../lib/service/authz-service';
@@ -25,8 +22,8 @@ const GetUsersSchema = {
 type GetUsers = typeof GetUsersSchema;
 
 async function getUsers(
-  req: FastifyRequestTypeBox<GetUsers>,
-  res: FastifyReplyTypeBox<GetUsers>
+  req: ReqTB<GetUsers>,
+  res: RepTB<GetUsers>
 ) {
   let ctxUser = req.ctx.getUser();
   let username = req.query.name;
@@ -63,8 +60,8 @@ const DeleteUserSchema = {
 type DeleteUser = typeof DeleteUserSchema;
 
 async function deleteUser(
-  req: FastifyRequestTypeBox<DeleteUser>,
-  res: FastifyReplyTypeBox<DeleteUser>,
+  req: ReqTB<DeleteUser>,
+  res: RepTB<DeleteUser>,
 ) {
   if(req.ctx.user === undefined) {
     return res.status(401).send();
@@ -99,8 +96,8 @@ type CreateUser = typeof CreateUser;
     Facilitates creation of a user without a password.
 _*/
 async function createUser(
-  req: FastifyRequestTypeBox<CreateUser>,
-  res: FastifyReplyTypeBox<CreateUser>
+  req: ReqTB<CreateUser>,
+  res: RepTB<CreateUser>
 ) {
   let ctxUser = req.ctx.getUser();
   let canCreateUser = await authzService.checkPermission(ctxUser.user_id, 'user.create');

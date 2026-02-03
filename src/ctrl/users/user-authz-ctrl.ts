@@ -2,10 +2,7 @@
 import { Type } from 'typebox';
 import { EzdError } from '../../lib/models/error/ezd-error';
 import { authzService } from '../../lib/service/authz-service';
-import {
-  FastifyReplyTypeBox,
-  FastifyRequestTypeBox
-} from '../../lib/models/fastify/fastify-typebox';
+import { RepTB, ReqTB } from '../../lib/models/fastify/fastify-typebox';
 import { PermissionRespSchema, RoleRespSchema } from '../../lib/models/authz/role-resp';
 
 const GetUserRolesSchema = {
@@ -19,8 +16,8 @@ const GetUserRolesSchema = {
 type GetUserRoles = typeof GetUserRolesSchema;
 
 async function getUserRoles(
-  req: FastifyRequestTypeBox<GetUserRoles>,
-  res: FastifyReplyTypeBox<GetUserRoles>
+  req: ReqTB<GetUserRoles>,
+  res: RepTB<GetUserRoles>
 ) {
   if(req.ctx.user?.user_id === undefined) {
     throw new EzdError('user_id missing from request context', 'EZD_2.1');
@@ -44,8 +41,8 @@ const PostUserRoleSchema = {
 type PostUserRole = typeof PostUserRoleSchema;
 
 async function postUserRole(
-  req: FastifyRequestTypeBox<PostUserRole>,
-  res: FastifyReplyTypeBox<PostUserRole>
+  req: ReqTB<PostUserRole>,
+  res: RepTB<PostUserRole>
 ) {
   /*
     Assign a role to a user. Requires user management permission.
@@ -71,8 +68,8 @@ const DeleteUserRoleSchema = {
 type DeleteUserRole = typeof DeleteUserRoleSchema;
 
 async function deleteUserRole(
-  req: FastifyRequestTypeBox<DeleteUserRole>,
-  res: FastifyReplyTypeBox<DeleteUserRole>
+  req: ReqTB<DeleteUserRole>,
+  res: RepTB<DeleteUserRole>
 ) {
   let ctxUser = req.ctx.getUser();
   let canDeleteRole = await authzService.checkPermission(ctxUser.user_id, 'user.mgmt');
@@ -94,8 +91,8 @@ const GetUserPermissionsSchema = {
 type GetUserPermissions = typeof GetUserPermissionsSchema;
 
 async function getUserPermissions(
-  req: FastifyRequestTypeBox<GetUserPermissions>,
-  res: FastifyReplyTypeBox<GetUserPermissions>
+  req: ReqTB<GetUserPermissions>,
+  res: RepTB<GetUserPermissions>
 ) {
   if(req.ctx.user === undefined) {
     throw new EzdError('user_id missing from request context', 'EZD_2.1');
