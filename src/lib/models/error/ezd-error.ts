@@ -6,7 +6,7 @@ import { EzdErrorCode, ezdErrorCodes } from './ezd-error-codes';
 Intended as a superclass, but can be used without extending
 _*/
 export class EzdError extends Error {
-  public readonly code: string;
+  public readonly code: EzdErrorCode;
   public readonly ezdMsg: string;
   constructor(message?: string, code?: EzdErrorCode)
   constructor(message?: string, options?: ErrorOptions)

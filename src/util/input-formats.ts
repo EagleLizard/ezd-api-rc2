@@ -36,6 +36,10 @@ Wikipedia has a list of valid email addresses: https://en.wikipedia.org/wiki/Ema
     RFC5322 (2008) https://datatracker.ietf.org/doc/html/rfc5322
 */
 function checkEmailAddr(emailAddr: string): boolean {
+  /*
+    regex found in the wild:
+    /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$/
+  _*/
   let atSignIdx: number;
   let localPart: string;
   let domainPart: string;

@@ -3,6 +3,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyCookie from '@fastify/cookie';
 import fastifySession from '@fastify/session';
+import WebSocket, { WebSocketServer } from 'ws';
 
 import { logger } from './lib/logger/logger';
 import { registerAuthNRoutes, registerRoutes } from './routes';
@@ -106,6 +107,20 @@ export async function initServer() {
 
   host = ezdConfig.EZD_HOST;
   port = ezdConfig.EZD_PORT;
+
+  /* websocket server _*/
+  // let wss = new WebSocketServer({
+  //   // port: port,
+  //   server: app.server,
+  //   clientTracking: true,
+  // });
+  // console.log(wss);
+  // wss.on('connection', (ws, req) => {
+  //   console.log('!!! client connected');
+  //   ws.on('error', err => {
+  //     logger.error(err);
+  //   });
+  // });
 
   try {
     await app.listen({ port, host });

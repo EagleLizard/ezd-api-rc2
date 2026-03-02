@@ -18,31 +18,55 @@ runContainer() {
     $api_image_name
 }
 
+buildImage() {
+  local parentDir=$(realpath "$(dirname $0)/..");
+  if [ $(basename $parentDir) != $PROJ_DIRNAME ]; then
+    fatal "wrong directory";
+  fi
+  pRun $scripts_dir/build-api-image.sh
+}
+
 stopContainer() {
   pRun docker stop $api_container_name
   pRun docker rm $api_container_name
 }
 
 runApiImage() {
-  local arg1=$1
+  # local arg1=$1
   local stop=false
-  local build=false
   local run=false
-  case "$arg1" in
-    s|stop)
-      stop=true
-      ;;
-    *) if [ -z "$arg1" ]; then
-        run=true
-      else
-        fatal "Invalid argument: $arg1"
-      fi
-      ;;
-  esac
+  # case "$arg1" in
+  #   s|stop)
+  #     stop=true
+  #     ;;
+  #   *) if [ -z "$arg1" ]; then
+  #       run=true
+  #     else
+  #       fatal "Invalid argument: $arg1"
+  #     fi
+  #     ;;
+  # esac
+  local build=false
+  while getopts "brs" opt; do
+    case "$opt" in
+      b) build=true ;;
+      r) run=true ;;
+      s) stop=true ;;
+      ?) fatal "invalid flag: $opts" ;;
+    esac
+  done
+  echo "arg1: $1"
+  echo "build: $build"
+  echo "run: $run"
+  echo "stop: $stop"
+  if [ "$build" = true ]; then
+    echo "building image"
+    buildImage
+  fi
   if [ "$run" = true ]; then
     echo "running container"
     runContainer
-  elif [ $stop ]; then
+  elif [ "$stop" = true ]; then
     echo "stopping container"
     stopContainer
   fi

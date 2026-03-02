@@ -16,12 +16,7 @@ export async function getWhoamiCtrl(
   req: FastifyRequest<GetWhoamiRequest>,
   res: FastifyReply<GetWhoamiRequest>
 ) {
-  let user: UserDto;
-  if(req.ctx.user === undefined) {
-    res.status(401).send();
-    return res;
-  }
-  user = req.ctx.user;
+  let user = req.ctx.getUser();
 
   res.status(200).send({
     user: user,

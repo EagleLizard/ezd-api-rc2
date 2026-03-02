@@ -83,4 +83,6 @@ export function registerAuthNRoutes(app: FastifyInstance) {
   }, authzCtrl.getPermissions);
 
   app.get('/v1/jcd/project', { schema: jcdCtrl.GetJcdProjects }, jcdCtrl.getProjects);
+  app.get('/v1/jcd/ezd-test', { schema: jcdCtrl.GetEzdTest }, jcdCtrl.getEzdTest);
+  app.get('/v1/jcd/export', { schema: jcdCtrl.GetJcdExport }, jcdCtrl.getJcdExport);
 }

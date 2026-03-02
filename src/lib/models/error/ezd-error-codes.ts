@@ -25,6 +25,7 @@ export const ezdErrorCodes = {
   permission_denied_get_roles: 'EZD_5.1',
   permission_denied_get_permissions: 'EZD_5.2',
   permission_denied_delete_role: 'EZD_5.3',
+  permission_denied_jcd: 'EZD_5.4',
 } as const;
 
 export type EzdErrorCode = typeof ezdErrorCodes[keyof typeof ezdErrorCodes];

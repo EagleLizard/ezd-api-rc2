@@ -104,10 +104,13 @@ async function getUsersWithAuthz(
   let queryVals: [ username?: string ] = [];
   if(opts.username !== undefined) {
     queryStr = `${queryStr}
-      where u.user_name = $1;
+      where u.user_name = $1
     `;
     queryVals = [ opts.username ];
   }
+  queryStr = `${queryStr}
+    order by u.created_at desc
+  `;
   let queryRes = await pgClient.query(queryStr, queryVals);
   if(!queryRes.rows.every(row => prim.isObject(row))) {
     throw new EzdError('Invalid query result', 'EZD_3.5');
@@ -123,7 +126,7 @@ async function getUsersWithAuthz(
     let user: GetUserRespItem['user'] = UserInfoSchema.decode({
       user_id: row.user_id,
       user_name: row.user_name,
-      email: row.user_name,
+      email: row.email,
       created_at: row.created_at,
       modified_at: row.modified_at,
     });

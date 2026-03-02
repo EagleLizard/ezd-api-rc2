@@ -41,3 +41,10 @@ updating multiple: https://stackoverflow.com/a/26715934/4677252
 update users as u set
   email = $1
 ```
+
+## Caddy Reverse Proxy
+
+
+### resources
+
+1. guide: https://www.alexhyett.com/newsletter/using-caddy-as-a-reverse-proxy/

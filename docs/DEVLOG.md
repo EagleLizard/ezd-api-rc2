@@ -7,7 +7,7 @@ The format is roughly reverse-chronological by date.
 ---
 ---
 
-[01/23/2026] 
+## [01/23/2026] 
 
 bash getopts usage: https://stackoverflow.com/a/34531699/4677252
 

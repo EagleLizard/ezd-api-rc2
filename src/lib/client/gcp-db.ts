@@ -22,4 +22,8 @@ export const gcpDb = new class GcpDb {
       : _datastore.createQuery(kindOrNamespace)
     ;
   }
+
+  get KEY(): symbol {
+    return _datastore.KEY;
+  }
 };
