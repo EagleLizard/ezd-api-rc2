@@ -7,7 +7,8 @@ _*/
 import { authzRepo } from '../db/authz-repo';
 import { PgClient } from '../db/pg-client';
 import { PermissionDto } from '../models/authz/permission-dto';
-import { PermissionResp, RoleResp } from '../models/authz/role-resp';
+import { PermissionResp } from '../models/authz/permission-resp';
+import { RoleResp } from '../models/authz/role-resp';
 import { UserRoleDto } from '../models/authz/user-role-dto';
 import { EzdError } from '../models/error/ezd-error';
 import { ezdErrorCodes } from '../models/error/ezd-error-codes';
@@ -25,6 +26,7 @@ export const authzService = {
   getUserRoles: getUserRoles,
   addRoleToUser: addRoleToUser,
   removeRoleFromUser: removeRoleFromUser,
+
   getPermissions: getPermissions,
   checkPermission: checkPermission,
   getUserPermissions: getUserPermissions,

@@ -20,6 +20,7 @@ const jcd_v3_ezd_test = 'EzdTestV3';
 /* JCD project service _*/
 export const jcdProjService = new class JcdProjService {
   getProjPreviews = getProjPreviews;
+  getProjPreviewByRoute = getProjPreviewByRoute;
   getProjects = getProjects;
   getProjectByRoute = getProjectByRoute;
   getProjectOrders = getProjectOrders;
@@ -52,7 +53,36 @@ async function getProjPreviews(): Promise<JcdProjPreview[]> {
     };
     return projPreview;
   });
+  jcdProjPreviews.sort((a, b) => a.orderIndex - b.orderIndex);
   return jcdProjPreviews;
+}
+
+async function getProjPreviewByRoute(route: string): Promise<JcdProjPreview | undefined> {
+  let [ jcdProj, jcdProjOrders ] = await Promise.all([
+    getProjectByRoute(route),
+    getProjectOrders(),
+  ]);
+  if(jcdProj === undefined) {
+    return undefined;
+  }
+  let projOrder = jcdProjOrders.find((projOrder) => {
+    return projOrder.projectKey === jcdProj.projectKey;
+  });
+  let jcdImgQuery = gcpDb.createQuery(jcd_v3_db_image)
+    .filter('imageType', '=', 'TITLE')
+    .filter('projectKey', '=', jcdProj.projectKey)
+    .limit(1)
+  ;
+  let imageQueryRes = (await jcdImgQuery.run())[0];
+  let jcdImage = JcdImage.decode(imageQueryRes[0]);
+  let projPreview: JcdProjPreview = {
+    projectKey: jcdProj.projectKey,
+    route: jcdProj.route,
+    title: jcdProj.title,
+    titleUri: jcdImage.bucketFile,
+    orderIndex: projOrder?.orderIdx ?? -1,
+  };
+  return projPreview;
 }
 
 async function getProjects(): Promise<JcdProject[]> {

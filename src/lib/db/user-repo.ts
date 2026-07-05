@@ -12,11 +12,13 @@ import { GetUserRespItem } from '../models/user/get-user-resp';
 import { prim } from '../../util/validate-primitives';
 import { UserInfoSchema } from '../models/user-info';
 import {
-  PermissionResp,
-  PermissionRespSchema,
   RoleResp,
   RoleRespSchema,
 } from '../models/authz/role-resp';
+import {
+  PermissionResp,
+  PermissionRespSchema,
+} from '../models/authz/permission-resp';
 import { MapVal } from '../../util/type-util';
 
 export const userRepo = {

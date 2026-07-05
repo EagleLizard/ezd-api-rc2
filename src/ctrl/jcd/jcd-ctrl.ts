@@ -10,13 +10,21 @@ import { JcdProject } from '../../lib/models/jcd/jcd-project';
 import { EzdTestV3 } from '../../lib/models/jcd/ezd-test-v3';
 import { EzdError } from '../../lib/models/error/ezd-error';
 import { jcdService } from '../../lib/service/jcd-service';
+import { JcdEntityExportDto } from '../../lib/models/jcd/jcd-export';
+import { ezdConfig } from '../../lib/config';
 
 const GetJcdProjects = {
   querystring: Type.Object({
-    route: Type.Optional(Type.String())
+    route: Type.Optional(Type.String()),
+    preview: Type.Optional(Type.Boolean()),
   }),
   response: {
-    200: Type.Union([ Type.Array(JcdProjPreview.schema), JcdProject.schema ]),
+    200: Type.Union([
+      Type.Array(JcdProject.schema),
+      JcdProject.schema,
+      Type.Array(JcdProjPreview.schema),
+      JcdProjPreview.schema,
+    ]),
     403: Type.Optional(Type.Object({})),
   }
 } as const satisfies FastifySchema;
@@ -30,12 +38,44 @@ async function getProjects(
   if(!hasJcdPerm) {
     return res.status(403).send();
   }
+  if(req.query.preview) {
+    if(req.query.route !== undefined) {
+      let jcdProjPreview = await jcdProjService.getProjPreviewByRoute(req.query.route);
+      return res.status(200).send(jcdProjPreview);
+    }
+    let projPreviews = await jcdProjService.getProjPreviews();
+    return res.status(200).send(projPreviews);
+  }
   if(req.query.route !== undefined) {
     let jcdProject = await jcdProjService.getProjectByRoute(req.query.route);
     return res.status(200).send(jcdProject);
   }
-  let projPreviews = await jcdProjService.getProjPreviews();
-  return res.status(200).send(projPreviews);
+  let jcdProjects = await jcdProjService.getProjects();
+  return res.status(200).send(jcdProjects);
+}
+
+const jcd_img_route_prefix = '/v1/jcd/img';
+const GetJcdImg = {
+  response: {
+    200: Type.Any(),
+    403: Type.Any(),
+    404: Type.Any(),
+  }
+} as const satisfies FastifySchema;
+type GetJcdImg = typeof GetJcdImg;
+async function getJcdImg(req: ReqTB<GetJcdImg>, res: RepTB<GetJcdImg>) {
+  let ctxUser = req.ctx.getUser();
+  let hasJcdPerm = await authzService.checkPermission(ctxUser.user_id, 'jcd.proj.read');
+  if(!hasJcdPerm) {
+    return res.status(403).send();
+  }
+  let proxyPath = req.url.substring(jcd_img_route_prefix.length);
+  let proxyUrl = `${ezdConfig.eaglelizard_api_host}/image/v2${proxyPath}`;
+  let resp = await fetch(proxyUrl);
+  if(resp.body === null) {
+    return res.status(404).send();
+  }
+  return res.status(200).send(resp.body);
 }
 
 const GetEzdTest = {
@@ -61,7 +101,7 @@ async function getEzdTest(req: ReqTB<GetEzdTest>, res: RepTB<GetEzdTest>) {
 
 const GetJcdExport = {
   response: {
-    200: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+    200: Type.Optional(Type.Array(JcdEntityExportDto.schema)),
     403: Type.Optional(Type.Object({})),
   }
 } as const satisfies FastifySchema;
@@ -75,16 +115,18 @@ async function getJcdExport(req: ReqTB<GetJcdExport>, res: RepTB<GetJcdExport>) 
   }
 
   let exportRes = await jcdService.getExport();
-  console.log({exportRes});
 
   return res.status(200).send(exportRes);
 }
 
 export const jcdCtrl = new class JcdCtrl {
+  jcd_img_route_prefix = jcd_img_route_prefix;
   GetJcdProjects = GetJcdProjects;
+  GetJcdImg = GetJcdImg;
   GetEzdTest = GetEzdTest;
   GetJcdExport = GetJcdExport;
   getProjects = getProjects;
+  getImg = getJcdImg;
   getEzdTest = getEzdTest;
   getJcdExport = getJcdExport;
 };

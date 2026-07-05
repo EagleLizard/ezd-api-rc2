@@ -3,11 +3,11 @@ import { Type } from 'typebox';
 import { RepTB, ReqTB } from '../../lib/models/fastify/fastify-typebox';
 import { authzService } from '../../lib/service/authz-service';
 import { EzdError } from '../../lib/models/error/ezd-error';
+import { RoleRespSchema } from '../../lib/models/authz/role-resp';
 import {
   PermissionResp,
   PermissionRespSchema,
-  RoleRespSchema
-} from '../../lib/models/authz/role-resp';
+} from '../../lib/models/authz/permission-resp';
 import { UserRoleDto, UserRoleDtoSchema } from '../../lib/models/authz/user-role-dto';
 
 const GetRoles = {

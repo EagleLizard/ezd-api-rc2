@@ -28,6 +28,8 @@ const ezdConfig = {
   SYSTEM_SECRET_EXPIRATION: process.env['SYSTEM_SECRET_EXPIRATION'],
   USE_JCD_CACHE: getBoolEnvVar('USE_JCD_CACHE'),
 
+  eaglelizard_api_host: getEnvVarOrErr('eaglelizard_api_host'),
+
   isDevEnv: isDevEnv,
 } as const;
 

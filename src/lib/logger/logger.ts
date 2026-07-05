@@ -1,11 +1,21 @@
 
 import path from 'node:path';
 import pino from 'pino';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import type {
+  FastifyBaseLogger,
+  FastifyReply,
+  FastifyRequest,
+  FastifySchema,
+  FastifyTypeProviderDefault,
+  RawServerDefault,
+  RouteGenericInterface,
+} from 'fastify';
+import type { ResSerializerReply } from 'fastify/types/logger';
 
 import { ezdConfig } from '../config';
 import { files } from '../../util/files';
 import { APP_LOGGER_NAME, LOG_DIR_PATH, LOG_FILE_EXT } from '../constants';
-import { FastifyBaseLogger } from 'fastify';
 
 const dev_env = ezdConfig.isDevEnv();
 
@@ -78,6 +88,39 @@ function initLogger(): FastifyBaseLogger {
           // host: bindings.hostname,
         };
       },
+    },
+    /*
+      See: https://github.com/fastify/fastify/blob/7f6d31980632eaa9c751dda48da8d12ff76ab411/lib/logger-pino.js#L47
+    _*/
+    serializers: {
+      req(req: FastifyRequest) {
+        return {
+          method: req.method,
+          url: req.url,
+          version: req.headers && req.headers['accept-version'],
+          host: req.host,
+          remoteAddress: req.ip,
+          remotePort: req.socket ? req.socket.remotePort : undefined,
+        };
+      },
+      res(rep: ResSerializerReply<
+        RawServerDefault,
+        FastifyReply<
+          RouteGenericInterface,
+          RawServerDefault,
+          IncomingMessage,
+          ServerResponse<IncomingMessage>,
+          unknown,
+          FastifySchema,
+          FastifyTypeProviderDefault,
+          unknown>
+        >) {
+        return {
+          statusCode: rep.statusCode,
+          method: rep.request?.method,
+          url: rep.request?.url,
+        };
+      }
     },
     timestamp: pino.stdTimeFunctions.isoTime,
   };

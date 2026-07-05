@@ -14,7 +14,7 @@ const GetUsersSchema = {
     roles: Type.Optional(Type.Boolean()),
   }),
   response: {
-    200: Type.Union([ GetUserRespItem, Type.Array(GetUserRespItem) ]),
+    200: Type.Union([ GetUserRespItem.schema, Type.Array(GetUserRespItem.schema) ]),
     400: Type.Optional(Type.String()),
     401: Type.Optional(Type.Object({})),
   }

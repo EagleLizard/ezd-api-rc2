@@ -3,7 +3,8 @@ import { Type, Static } from 'typebox';
 
 import { tbUtil } from '../../../util/tb-util';
 import { UserInfoSchema } from '../user-info';
-import { PermissionRespSchema, RoleRespSchema } from '../authz/role-resp';
+import { RoleRespSchema } from '../authz/role-resp';
+import { PermissionRespSchema } from '../authz/permission-resp';
 
 const GetUserRespItemTSchema = Type.Object({
   user: UserInfoSchema.schema,
@@ -13,6 +14,7 @@ const GetUserRespItemTSchema = Type.Object({
 export type GetUserRespItem = Static<typeof GetUserRespItemTSchema>;
 export const GetUserRespItem = {
   decode: decodeGetUserRespItem,
+  schema: GetUserRespItemTSchema,
 } as const;
 
 function decodeGetUserRespItem(rawVal: unknown): GetUserRespItem {

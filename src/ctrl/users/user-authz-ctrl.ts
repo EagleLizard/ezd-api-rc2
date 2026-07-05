@@ -3,7 +3,8 @@ import { Type } from 'typebox';
 import { EzdError } from '../../lib/models/error/ezd-error';
 import { authzService } from '../../lib/service/authz-service';
 import { RepTB, ReqTB } from '../../lib/models/fastify/fastify-typebox';
-import { PermissionRespSchema, RoleRespSchema } from '../../lib/models/authz/role-resp';
+import { RoleRespSchema } from '../../lib/models/authz/role-resp';
+import { PermissionRespSchema } from '../../lib/models/authz/permission-resp';
 
 const GetUserRolesSchema = {
   params: Type.Object({
