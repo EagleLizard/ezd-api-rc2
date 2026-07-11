@@ -8,10 +8,10 @@ import { jcdProjService } from '../../lib/service/jcd-proj-service';
 import { JcdProjPreview } from '../../lib/models/jcd/jcd-proj-preview';
 import { JcdProject } from '../../lib/models/jcd/jcd-project';
 import { EzdTestV3 } from '../../lib/models/jcd/ezd-test-v3';
-import { EzdError } from '../../lib/models/error/ezd-error';
 import { jcdService } from '../../lib/service/jcd-service';
 import { JcdEntityExportDto } from '../../lib/models/jcd/jcd-export';
 import { ezdConfig } from '../../lib/config';
+import { HttpHeader } from 'fastify/types/utils';
 
 const GetJcdProjects = {
   querystring: Type.Object({
@@ -75,6 +75,16 @@ async function getJcdImg(req: ReqTB<GetJcdImg>, res: RepTB<GetJcdImg>) {
   if(resp.body === null) {
     return res.status(404).send();
   }
+  let passthru_headers: HttpHeader[] = [
+    'content-type',
+    'cache-control',
+    'date',
+  ];
+  passthru_headers.forEach((header) => {
+    if(resp.headers.has(header)) {
+      res.header(header, resp.headers.get(header));
+    }
+  });
   return res.status(200).send(resp.body);
 }
 
