@@ -1,7 +1,8 @@
 
 import type * as Fastify from 'fastify';
+import type { QueryResult } from 'pg';
 
-import { IPgClient } from './pg-client';
+import type { IPgClient } from './pg-client';
 import { prim } from '../../util/validate-primitives';
 import { EzdError } from '../models/error/ezd-error';
 import { SessionDto, SessionDtoSchema } from '../models/session-dto';
@@ -27,7 +28,7 @@ export const sessionRepo = {
   insertSession: insertSession
 } as const;
 
-function deleteSession(pgClient: IPgClient, sid: string) {
+function deleteSession(pgClient: IPgClient, sid: string): Promise<QueryResult> {
   let queryStr = `
     delete from session s where s.sid = $1
   `;

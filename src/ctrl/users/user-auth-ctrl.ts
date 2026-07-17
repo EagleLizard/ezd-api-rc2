@@ -22,7 +22,7 @@ const PostRegisterUserSchema = {
       user: UserDtoSchema.schema,
     }),
     403: Type.Optional(Type.Object({
-      errMsg: Type.String(),
+      errMsg: Type.Optional(Type.String()),
     })),
   },
 } as const;
@@ -34,7 +34,7 @@ async function postRegisterUser(
 ) {
   let body: RegisterUserBody;
   if(!RegisterUserBodySchema.check(req.body)) {
-    return res.status(403).send();
+    return res.status(403).send({});
   }
   body = RegisterUserBodySchema.decode(req.body);
   let registerUserRes = await userService.registerUser(body);
@@ -101,7 +101,7 @@ async function postUserLogin(
   }
   if(user === undefined) {
     /* invalid password _*/
-    return res.status(401).send();
+    return res.status(401).send({});
   }
   await userService.logInUser(user, req.session, req.ip);
 
@@ -118,9 +118,7 @@ async function postUserLogin(
 
 const PostUserLogoutSchema = {
   response: {
-    200: Type.Object({
-      user: UserDtoSchema.schema,
-    }),
+    200: Type.Optional(Type.Object({})),
     401: Type.Object({
       code: Type.Optional(Type.String()),
       message: Type.Optional(Type.String()),
@@ -136,10 +134,10 @@ async function postUserLogout(
   let user: UserDto | undefined;
   user = req.ctx.user;
   if(user === undefined) {
-    return res.status(401).send();
+    return res.status(401).send({});
   }
   await userService.logoutUser(req.session.sessionId, user);
-  return res.status(200).send();
+  return res.status(200).send({});
 }
 
 const PostChangePw = {
@@ -172,7 +170,7 @@ async function postChangePassword(
   _*/
   let hasChangePwPerms = await authzService.checkPermission(ctxUser.user_id, 'user.mgmt');
   if((ctxUser.user_id !== req.params.userId) && !hasChangePwPerms) {
-    return res.status(403).send();
+    return res.status(403).send({});
   }
   if(!hasChangePwPerms) {
     /*
@@ -227,7 +225,7 @@ async function postChangePassword(
     });
   }
   await userService.changePassword(req.params.userId, nextPw);
-  return res.status(200).send();
+  return res.status(200).send({});
 }
 /*
   Exports

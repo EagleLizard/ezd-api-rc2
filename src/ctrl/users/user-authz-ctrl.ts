@@ -51,13 +51,13 @@ async function postUserRole(
   let ctxUser = req.ctx.getUser();
   let canAssignRole = await authzService.checkPermission(ctxUser.user_id, 'user.mgmt');
   if(!canAssignRole) {
-    return res.status(403).send();
+    return res.status(403).send({});
   }
   for(let i = 0; i < req.body.roles.length; i++) {
     let roleName = req.body.roles[i];
     await authzService.addRoleToUser(req.params.userId, roleName);
   }
-  return res.status(200).send();
+  return res.status(200).send({});
 }
 
 const DeleteUserRoleSchema = {

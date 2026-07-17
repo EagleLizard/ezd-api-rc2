@@ -64,18 +64,18 @@ async function deleteUser(
   res: RepTB<DeleteUser>,
 ) {
   if(req.ctx.user === undefined) {
-    return res.status(401).send();
+    return res.status(401).send({});
   }
   let canDeleteUser = await authzService.checkPermission(req.ctx.user.user_id, 'user.mgmt');
   if(!canDeleteUser) {
-    return res.status(403).send();
+    return res.status(403).send({});
   }
   let userToDelete = await userService.getUserById(req.params.userId);
   if(userToDelete === undefined) {
-    return res.status(404).send();
+    return res.status(404).send({});
   }
   await userService.deleteUser(req.params.userId);
-  return res.status(200).send();
+  return res.status(200).send({});
 }
 
 const CreateUser = {
@@ -102,7 +102,7 @@ async function createUser(
   let ctxUser = req.ctx.getUser();
   let canCreateUser = await authzService.checkPermission(ctxUser.user_id, 'user.create');
   if(!canCreateUser) {
-    return res.status(403).send();
+    return res.status(403).send({});
   }
   let username = req.body.userName;
   let email = req.body.email;

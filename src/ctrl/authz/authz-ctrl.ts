@@ -1,5 +1,7 @@
 
 import { Type } from 'typebox';
+import type { FastifySchema } from 'fastify';
+
 import { RepTB, ReqTB } from '../../lib/models/fastify/fastify-typebox';
 import { authzService } from '../../lib/service/authz-service';
 import { EzdError } from '../../lib/models/error/ezd-error';
@@ -43,7 +45,7 @@ async function getRoles(
     if(!(e instanceof EzdError) || (e.code !== 'EZD_5.1' && e.code !== 'EZD_5.2')) {
       throw e;
     }
-    return res.status(403).send();
+    return res.status(403).send({});
   }
 }
 
@@ -68,7 +70,7 @@ async function createRole(
     return res.status(200).send(roleDto);
   } catch(e) {
     if(e instanceof EzdError && e.code === 'EZD_5.0') {
-      return res.status(403).send();
+      return res.status(403).send({});
     }
     throw e;
   }
@@ -82,7 +84,7 @@ const DeleteRole = {
     200: Type.Optional(Type.Object({})),
     403: Type.Optional(Type.Object({})),
   },
-} as const;
+} as const satisfies FastifySchema;
 type DeleteRole = typeof DeleteRole;
 async function deleteRole(
   req: ReqTB<DeleteRole>,
@@ -91,10 +93,10 @@ async function deleteRole(
   let ctxUser = req.ctx.getUser();
   try {
     await authzService.deleteRole(ctxUser.user_id, req.params.roleId);
-    return res.status(200).send();
+    return res.status(200).send({});
   } catch(e) {
     if(e instanceof EzdError && e.code === 'EZD_5.3') {
-      return res.status(403).send();
+      return res.status(403).send({});
     }
     throw e;
   }
@@ -118,7 +120,7 @@ async function getPermissions(
     return res.status(200).send(permissions);
   } catch(e) {
     if(e instanceof EzdError && e.code === 'EZD_5.2') {
-      return res.status(403).send();
+      return res.status(403).send({});
     }
     throw e;
   }

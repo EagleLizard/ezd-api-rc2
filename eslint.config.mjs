@@ -3,9 +3,13 @@ import globals from 'globals';
 import pluginJs from '@eslint/js';
 import tsEslint from 'typescript-eslint';
 import stylistic from '@stylistic/eslint-plugin';
+import { globalIgnores } from 'eslint/config';
 
 /** @type {import('eslint').Linter.Config[]} */
 const config = [
+  globalIgnores([
+    './dist/*',
+  ]),
   {
     files: [
       '**/*.js',

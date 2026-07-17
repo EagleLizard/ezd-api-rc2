@@ -1,11 +1,30 @@
 
 import { gcpDb } from '../client/gcp-db';
 import { GcpKind } from '../models/gcp/gcp-kind';
+import { GcpNamespace } from '../models/gcp/gcp-namespace';
 import { JcdEntityExportDto } from '../models/jcd/jcd-export';
 
 export const jcdService = {
+  getNamespace: getNamespaces,
   getExport: getExport,
 } as const;
+
+async function getNamespaces(): Promise<GcpNamespace[]> {
+  let nsQueryRes = await gcpDb.createQuery('__namespace__')
+    .select('__key__')
+    .run();
+  let jcdNss: GcpNamespace[] = nsQueryRes[0].map(rawNs => {
+    let decodedNs = GcpNamespace.decode(Object.assign({}, {
+      id: '',
+      name: '',
+    }, rawNs[gcpDb.KEY]));
+    if(decodedNs.id === '1') {
+      decodedNs.name = '_default';
+    }
+    return decodedNs;
+  });
+  return jcdNss;
+}
 
 /*
 Provided export/import behavior in google cloud datastore writes

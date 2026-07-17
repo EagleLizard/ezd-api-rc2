@@ -7,6 +7,8 @@ export const ezdErrorCodes = {
   system_secret_not_found: 'EZD_0.4',
   // INVALID_LOG_IN_INPUT: 'EZD_1.0',
   schema_decode: 'EZD_1.1',
+  ezd_cache_key_dupe: 'EZD_1.2',
+  ezd_cache_sep: 'EZD_1.3',
 
   NOT_FOUND: 'EZD_2.0',
   user_missing_from_ctx_in_authn_route: 'EZD_2.1',
