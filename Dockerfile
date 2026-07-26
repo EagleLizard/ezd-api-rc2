@@ -12,7 +12,7 @@ WORKDIR $HOME
 # COPY .env .
 
 COPY package.json .
-COPY package-lock.json .
+COPY pnpm-lock.yaml .
 COPY .npmrc .
 COPY tsconfig.json .
 COPY vite.config.js .
