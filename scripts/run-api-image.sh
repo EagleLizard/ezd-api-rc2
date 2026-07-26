@@ -12,6 +12,7 @@ runContainer() {
     --name $api_container_name \
     -p ${EZD_PORT}:${EZD_PORT} \
     --restart unless-stopped \
+    --add-host host.docker.internal:host-gateway \
     --env-file ./.env \
     -e POSTGRES_HOST=host.docker.internal \
     -e EZD_HOST=0.0.0.0 \
