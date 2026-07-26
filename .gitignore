@@ -12,6 +12,7 @@ data
 build
 logs
 extern-tmp
+_logs
 
 _jcd_cache
 ezd_api_pg_db_data
