@@ -34,7 +34,7 @@ function registerCacheItem<T>(
   return EzdCacheItem.init(keyPrefix, decodeFn);
 }
 
-class EzdCacheItem<T = unknown> {
+export class EzdCacheItem<T = unknown> {
   keyPrefix: string;
   decodeFn: (val: unknown) => T;
   ttlMs = 1_000 * 60 * 20;

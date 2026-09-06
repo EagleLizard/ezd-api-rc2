@@ -1,7 +1,7 @@
 
 import assert from 'node:assert';
 
-import { Type } from 'typebox';
+// import { Type } from 'typebox';
 
 import { gcpDb } from '../client/gcp-db';
 import { JcdProject } from '../models/jcd/jcd-project';
@@ -11,8 +11,8 @@ import { JcdProjPreview } from '../models/jcd/jcd-proj-preview';
 import { EzdTestV3 } from '../models/jcd/ezd-test-v3';
 import { authzService } from './authz-service';
 import { EzdError } from '../models/error/ezd-error';
-import { ezdCache } from '../lib/ezd-cache';
-import { tbUtil } from '../../util/tb-util';
+import { ezdCache, EzdCacheItem } from '../lib/ezd-cache';
+// import { tbUtil } from '../../util/tb-util';
 
 // const do_cache = ezdConfig.USE_JCD_CACHE;
 // const jcdCache = JcdCache.init();
@@ -24,17 +24,25 @@ const jcd_v3_ezd_test = 'EzdTestV3';
 
 const jcd_title_images_cache_key = 'jcd_title_images';
 
-const jcdProjCache = ezdCache.init<JcdProject>('jcd_project', (val) => {
+const jcdProjCache: EzdCacheItem<JcdProject> = ezdCache.init<JcdProject>('jcd_project', (val) => {
   return JcdProject.decode(val);
 });
-const jcdProjectPreviewsCache = ezdCache.init('jcd_project_previews', (val) => {
-  return tbUtil.decodeWithSchema(Type.Array(JcdProjPreview.schema), val);
-});
-const jcdProjectOrdersCache = ezdCache.init('jcd_project_orders', (val) => {
-  return tbUtil.decodeWithSchema(Type.Array(JcdProjectOrder.schema), val);
-});
+const jcdProjectPreviewsCache: EzdCacheItem<JcdProjPreview[]> = ezdCache
+  .init('jcd_project_previews', (vals) => {
+    assert(Array.isArray(vals));
+    let jcdProjPrevs: JcdProjPreview[] = vals.map(rawVal => JcdProjPreview.decode(rawVal));
+    return jcdProjPrevs;
+  });
+const jcdProjectOrdersCache: EzdCacheItem<JcdProjectOrder[]> = ezdCache
+  .init('jcd_project_orders', (vals) => {
+    assert(Array.isArray(vals));
+    let jcdProjOrders: JcdProjectOrder[] = vals.map(JcdProjectOrder.decode);
+    return jcdProjOrders;
+  });
 const jcdImagesCache = ezdCache.init('jcd_project_images', (val) => {
-  return tbUtil.decodeWithSchema(Type.Array(JcdImage.schema), val);
+  assert(Array.isArray(val));
+  let jcdImages: JcdImage[] = val.map(rawVal => JcdImage.decode(rawVal));
+  return jcdImages;
 });
 
 /* JCD project service _*/
@@ -44,6 +52,7 @@ export const jcdProjService = new class JcdProjService {
   getProjects = getProjects;
   getProjectByRoute = getProjectByRoute;
   getProjectOrders = getProjectOrders;
+  getProjectImages = getProjectImages;
   getTitleImages = getTitleImages;
 
   getEzdTest = getEzdTest;
@@ -82,19 +91,22 @@ async function getProjPreviews(): Promise<JcdProjPreview[]> {
   return jcdProjPreviews;
 }
 
-async function getProjPreviewByRoute(route: string): Promise<JcdProjPreview | undefined> {
+async function getProjPreviewByRoute(
+  route: string,
+  ns?: string
+): Promise<JcdProjPreview | undefined> {
   // let [ jcdProj, jcdProjOrders ] = await Promise.all([
   //   jcdProjService.getProjectByRoute(route),
   //   jcdProjService.getProjectOrders(),
   // ]);
-  let jcdProj = await jcdProjService.getProjectByRoute(route);
+  let jcdProj = await jcdProjService.getProjectByRoute(route, ns);
   if(jcdProj === undefined) {
     return undefined;
   }
   // let projOrder = jcdProjOrders.find((projOrder) => {
   //   return projOrder.projectKey === jcdProj.projectKey;
   // });
-  let jcdImage = await getProjTitleImage(jcdProj.projectKey);
+  let jcdImage = await getProjTitleImage(jcdProj.projectKey, ns);
   let projPreview: JcdProjPreview = {
     projectKey: jcdProj.projectKey,
     route: jcdProj.route,
@@ -106,13 +118,17 @@ async function getProjPreviewByRoute(route: string): Promise<JcdProjPreview | un
   return projPreview;
 }
 
-async function getProjTitleImage(projectKey: string): Promise<JcdImage> {
-  let cacheKey = `jcd_title_image_${projectKey}`;
+async function getProjTitleImage(projectKey: string, ns?: string): Promise<JcdImage> {
+  let cacheKey = `jcd_title_image_${projectKey}${ns ? `-${ns}` : ''}`;
   let cached = jcdImagesCache.get(cacheKey)?.[0];
   if(cached !== undefined) {
     return cached;
   }
-  let jcdImgQuery = gcpDb.createQuery(jcd_v3_db_image)
+  let query = ns === undefined
+    ? gcpDb.createQuery(jcd_v3_db_image)
+    : gcpDb.createQuery(ns, jcd_v3_db_image)
+  ;
+  let jcdImgQuery = query
     .filter('imageType', '=', 'TITLE')
     .filter('projectKey', '=', projectKey)
     .limit(1)
@@ -130,13 +146,17 @@ async function getProjects(): Promise<JcdProject[]> {
   return jcdProjects;
 }
 
-async function getProjectByRoute(routeKey: string): Promise<JcdProject | undefined> {
-  let cachedProj = jcdProjCache.get(routeKey);
+async function getProjectByRoute(routeKey: string, ns?: string): Promise<JcdProject | undefined> {
+  let cacheKey = `${routeKey}${ns ? `_${ns}` : ''}`;
+  let cachedProj = jcdProjCache.get(cacheKey);
   if(cachedProj !== undefined) {
     return cachedProj;
   }
-  let query = gcpDb.createQuery(jcd_v3_db_project_kind)
-    .filter('route', '=', routeKey)
+  let query = ns === undefined
+    ? gcpDb.createQuery(jcd_v3_db_project_kind)
+    : gcpDb.createQuery(ns, jcd_v3_db_project_kind)
+  ;
+  query = query.filter('route', '=', routeKey)
     .limit(1)
   ;
   let queryRes = await query.run();
@@ -144,8 +164,22 @@ async function getProjectByRoute(routeKey: string): Promise<JcdProject | undefin
     return;
   }
   let jcdProj = JcdProject.decode(queryRes[0][0]);
-  jcdProjCache.set(routeKey, jcdProj);
+  jcdProjCache.set(cacheKey, jcdProj);
   return jcdProj;
+}
+
+async function getProjectImages(
+  projectKey: string,
+  opts: {active?: boolean} = {}
+): Promise<JcdImage[]> {
+  let query = gcpDb.createQuery(jcd_v3_db_image)
+    .filter('projectKey', '=', projectKey);
+  if(opts.active === true) {
+    query = query.filter('active', true);
+  }
+  let queryRes = await query.run();
+  let jcdImages = queryRes[0].map(JcdImage.decode);
+  return jcdImages;
 }
 
 async function getProjectOrders(): Promise<JcdProjectOrder[]> {

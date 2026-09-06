@@ -31,5 +31,5 @@ export const JcdProject = {
 } as const;
 
 function decodeJcdProject(rawVal: unknown): JcdProject {
-  return tbUtil.decodeWithSchema(JcdProjectTSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof JcdProjectTSchema, JcdProject>(JcdProjectTSchema, rawVal);
 }

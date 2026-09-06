@@ -2,16 +2,25 @@
 import { Type, Static } from 'typebox';
 import { tbUtil } from '../../../util/tb-util';
 
-const GcpKindTSchema = Type.Object({
-  namespace: Type.Union([ Type.Undefined(), Type.String() ]),
-  name: Type.String(),
+const GcpKeyBaseTSchema = Type.Object({
+  namespace: Type.Optional(Type.String()),
   kind: Type.String(),
 });
-export type GcpKind = Static<typeof GcpKindTSchema>;
+const GcpKeyTSchema = Type.Union([
+  Type.Object({
+    ...GcpKeyBaseTSchema.properties,
+    name: Type.String(),
+  }),
+  Type.Object({
+    ...GcpKeyBaseTSchema.properties,
+    id: Type.String(),
+  }),
+]);
+export type GcpKey = Static<typeof GcpKeyTSchema>;
 
-export const GcpKind = {
-  schema: GcpKindTSchema,
-  decode: function decodeGcpKind(rawVal: unknown): GcpKind {
-    return tbUtil.decodeWithSchema(GcpKindTSchema, rawVal);
+export const GcpKey = {
+  schema: GcpKeyTSchema,
+  decode: function decodeGcpKey(rawVal: unknown): GcpKey {
+    return tbUtil.decodeWithSchema<typeof GcpKeyTSchema, GcpKey>(GcpKeyTSchema, rawVal);
   },
 } as const;
