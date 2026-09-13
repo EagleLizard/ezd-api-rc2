@@ -35,6 +35,24 @@ export const gcpDb = new class GcpDb {
       : _datastore.createQuery(kindOrNamespace)
     ;
   }
+  /*
+  helper to simplify createQuery call logic
+  _*/
+  query(kind?: string, ns?: string): Query
+  query(kind?: string[], ns?: string): Query
+  query(kind?: string | string[], ns?: string): Query {
+    if(ns !== undefined) {
+      return prim.isString(kind)
+        ? this.createQuery(ns, kind)
+        : this.createQuery(ns, kind)
+      ;
+    }
+    return prim.isString(kind)
+      ? this.createQuery(kind)
+      : this.createQuery(kind)
+    ;
+  }
+
   get(keys: entity.Key | entity.Key[], options?: CreateReadStreamOptions): Promise<GetResponse>
   get(keys: entity.Key | entity.Key[], callback: GetCallback): void
   get(

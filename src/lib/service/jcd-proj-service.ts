@@ -1,8 +1,6 @@
 
 import assert from 'node:assert';
 
-// import { Type } from 'typebox';
-
 import { gcpDb } from '../client/gcp-db';
 import { JcdProject } from '../models/jcd/jcd-project';
 import { JcdProjectOrder } from '../models/jcd/jcd-project-order';
@@ -12,10 +10,7 @@ import { EzdTestV3 } from '../models/jcd/ezd-test-v3';
 import { authzService } from './authz-service';
 import { EzdError } from '../models/error/ezd-error';
 import { ezdCache, EzdCacheItem } from '../lib/ezd-cache';
-// import { tbUtil } from '../../util/tb-util';
-
-// const do_cache = ezdConfig.USE_JCD_CACHE;
-// const jcdCache = JcdCache.init();
+import { JcdProjKeyDto } from '../models/jcd/jcd-proj-key-dto';
 
 const jcd_v3_db_project_kind = 'JcdProjectV3';
 const jcd_v3_db_image = 'JcdImageV3';
@@ -47,6 +42,7 @@ const jcdImagesCache = ezdCache.init('jcd_project_images', (val) => {
 
 /* JCD project service _*/
 export const jcdProjService = new class JcdProjService {
+  getKeys = getKeys;
   getProjPreviews = getProjPreviews;
   getProjPreviewByRoute = getProjPreviewByRoute;
   getProjects = getProjects;
@@ -57,6 +53,13 @@ export const jcdProjService = new class JcdProjService {
 
   getEzdTest = getEzdTest;
 };
+
+async function getKeys(env?: string): Promise<JcdProjKeyDto[]> {
+  let query = gcpDb.query('JcdProjectKeyV3', env);
+  let queryRes = await query.run();
+  let projKeyDtos = queryRes[0].map(rawVal => JcdProjKeyDto.decode(rawVal));
+  return projKeyDtos;
+}
 
 async function getProjPreviews(): Promise<JcdProjPreview[]> {
   let cached = jcdProjectPreviewsCache.get('');

@@ -15,6 +15,8 @@ import { HttpHeader } from 'fastify/types/utils';
 import { GcpNamespace } from '../../lib/models/gcp/gcp-namespace';
 import { JcdImage } from '../../lib/models/jcd/jcd-image';
 import { GcpKey } from '../../lib/models/gcp/gcp-kind';
+import { EzdError } from '../../lib/models/error/ezd-error';
+import { gcpDbError } from '../../lib/models/gcp/gcp-db-error';
 
 const GetJcdProjects = {
   querystring: Type.Object({
@@ -43,27 +45,32 @@ async function getProjects(
   if(!hasJcdPerm) {
     return res.status(403).send({});
   }
-  if(req.query.preview) {
-    if(req.query.route !== undefined) {
-      let jcdProjPreview = await jcdProjService
-        .getProjPreviewByRoute(req.query.route, req.query.ns);
-      if(jcdProjPreview === undefined) {
-        return res.status(404).send({ message: 'preview not found' });
+  try {
+    if(req.query.preview) {
+      if(req.query.route !== undefined) {
+        let jcdProjPreview = await jcdProjService
+          .getProjPreviewByRoute(req.query.route, req.query.ns);
+        if(jcdProjPreview === undefined) {
+          return res.status(404).send({ message: 'preview not found' });
+        }
+        return res.status(200).send(jcdProjPreview);
       }
-      return res.status(200).send(jcdProjPreview);
+      let projPreviews = await jcdProjService.getProjPreviews();
+      return res.status(200).send(projPreviews);
     }
-    let projPreviews = await jcdProjService.getProjPreviews();
-    return res.status(200).send(projPreviews);
-  }
-  if(req.query.route !== undefined) {
-    let jcdProject = await jcdProjService.getProjectByRoute(req.query.route);
-    if(jcdProject === undefined) {
-      return res.status(404).send({ message: 'project not found' });
+    if(req.query.route !== undefined) {
+      let jcdProject = await jcdProjService.getProjectByRoute(req.query.route);
+      if(jcdProject === undefined) {
+        return res.status(404).send({ message: 'project not found' });
+      }
+      return res.status(200).send(jcdProject);
     }
-    return res.status(200).send(jcdProject);
+    let jcdProjects = await jcdProjService.getProjects();
+    return res.status(200).send(jcdProjects);
+  } catch(e) {
+    console.error(e);
+    throw new EzdError('uncaught error occurred when getting projects', { cause: e });
   }
-  let jcdProjects = await jcdProjService.getProjects();
-  return res.status(200).send(jcdProjects);
 }
 
 const GetJcdProjectImg = {
@@ -247,7 +254,7 @@ const PostJcdCopyEnvKind = {
   }),
   body: Type.Object({
     /* name is either GCP entity name or id _*/
-    name: Type.Optional(Type.String()),
+    name: Type.String(),
     /* When fromEnv is omitted, will be default env _*/
     fromEnv: Type.Optional(Type.String()),
     /* When toEnv is '1', will be default env _*/
@@ -273,11 +280,30 @@ async function postJcdCopyEnvKind(
   let entityKind = req.params.entityKind;
   let toEnv = req.body.toEnv;
   let fromEnv = req.body.fromEnv;
+  let name = req.body.name;
 
   if(toEnv === jcdService.default_env_id) {
     return res.status(403).send({ errMsg: 'Copy to [default] namespace/env not yet supported' });
   }
-
+  try {
+    await jcdService.copyEnvKindEntity({
+      fromEnv: fromEnv,
+      toEnv: toEnv,
+      entityKind: entityKind,
+      name: name,
+    });
+  } catch(e) {
+    if(!gcpDbError.isGcpDbError(e)) {
+      throw e;
+    }
+    if(e.code === 6) {
+      req.log.error(e);
+      return res.status(403).send({
+        errMsg: `error: ${e.details}`,
+      });
+    }
+    throw e;
+  }
   return res.status(200).send({ outcome: { msg: 'success' } });
 }
 

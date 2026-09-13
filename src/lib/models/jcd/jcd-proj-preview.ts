@@ -16,5 +16,8 @@ export const JcdProjPreview = {
 } as const;
 
 function decodeJcdProjPreview(rawVal: unknown): JcdProjPreview {
-  return tbUtil.decodeWithSchema(JcdProjPreviewTSchema, rawVal);
+  return tbUtil.decodeWithSchema<
+    typeof JcdProjPreviewTSchema,
+    JcdProjPreview
+  >(JcdProjPreviewTSchema, rawVal);
 }

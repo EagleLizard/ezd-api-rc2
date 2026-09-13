@@ -5,6 +5,7 @@ import { GcpKey } from '../models/gcp/gcp-kind';
 import { GcpNamespace } from '../models/gcp/gcp-namespace';
 import { JcdEntityExportDto } from '../models/jcd/jcd-export';
 import { entity } from '@google-cloud/datastore/build/src/entity';
+import { EzdError } from '../models/error/ezd-error';
 
 const default_env_id = '1';
 
@@ -94,7 +95,30 @@ async function copyEnvKindEntity(opts: {
   fromEnv?: string;
   toEnv: string;
 }) {
-
+  if(opts.toEnv === default_env_id) {
+    throw new EzdError('dont do that!');
+  }
+  if(
+    opts.fromEnv === opts.toEnv
+    || (
+      opts.fromEnv === undefined
+      && opts.toEnv === default_env_id
+    )
+  ) {
+    /* copying to same env not supported _*/
+    throw new EzdError('dont do that!');
+  }
+  let toKey = gcpDb.key({
+    namespace: opts.toEnv,
+    path: [ opts.entityKind, opts.name ],
+  });
+  let srcEntity = await jcdService.getKindEntityByName(opts.entityKind, opts.name, opts.fromEnv);
+  let queryRes = await gcpDb.insert({
+    key: toKey,
+    data: srcEntity,
+  });
+  console.log(queryRes[0]);
+  console.log(srcEntity);
 }
 
 /*

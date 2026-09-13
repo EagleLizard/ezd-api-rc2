@@ -1,7 +1,7 @@
 
 /* typebox utils */
 
-import type { Static, StaticDecode, StaticType, TSchema } from 'typebox';
+import type { StaticDecode, StaticType, TSchema } from 'typebox';
 import Value, { DecodeError } from 'typebox/value';
 import { Compile } from 'typebox/compile';
 import { EzdError } from '../lib/models/error/ezd-error';

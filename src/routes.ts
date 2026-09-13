@@ -14,6 +14,7 @@ import { Metrics } from './lib/lib/metrics';
 import { FastifyTypeBox } from './lib/models/fastify/fastify-typebox';
 import { authzCtrl } from './ctrl/authz/authz-ctrl';
 import { jcdCtrl } from './ctrl/jcd/jcd-ctrl';
+import { jcdEnvCtrl } from './ctrl/jcd/jcd-env-ctrl';
 
 export function registerRoutes(app: FastifyTypeBox) {
   app.get('/health', getHealthCtrl);
@@ -100,4 +101,6 @@ export function registerAuthNRoutes(app: FastifyInstance) {
     { schema: jcdCtrl.PostJcdCopyEnvKind },
     jcdCtrl.postJcdCopyEnvKind
   );
+
+  app.get('/v1/jcd/env/proj', {schema: jcdEnvCtrl.GetV3Proj}, jcdEnvCtrl.getV3Proj);
 }
