@@ -15,5 +15,8 @@ export const PermissionRespSchema = {
 } as const;
 
 function decodePermissionResp(rawVal: unknown): PermissionResp {
-  return tbUtil.decodeWithSchema(PermissionRespTSchema, rawVal);
+  return tbUtil.decodeWithSchema<
+    typeof PermissionRespTSchema,
+    PermissionResp
+  >(PermissionRespTSchema, rawVal);
 }

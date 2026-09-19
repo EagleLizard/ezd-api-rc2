@@ -13,5 +13,8 @@ export const JcdCacheMeta = {
 } as const;
 
 function decodeJcdCacheMeta(rawVal: unknown): JcdCacheMeta {
-  return tbUtil.decodeWithSchema(JcdCacheMetaTSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof JcdCacheMetaTSchema, JcdCacheMeta>(
+    JcdCacheMetaTSchema,
+    rawVal
+  );
 }

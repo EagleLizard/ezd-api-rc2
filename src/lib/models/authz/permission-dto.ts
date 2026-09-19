@@ -17,5 +17,8 @@ export const PermissionDtoSchema = {
 } as const;
 
 function decodePermissionRole(val: unknown): PermissionDto {
-  return tbUtil.decodeWithSchema(PermissionDtoTSchema, val);
+  return tbUtil.decodeWithSchema<
+    typeof PermissionDtoTSchema,
+    PermissionDto
+    >(PermissionDtoTSchema, val);
 }

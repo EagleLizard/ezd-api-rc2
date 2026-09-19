@@ -11,5 +11,5 @@ export const ExtMimeMapSchema = {
 } as const;
 
 function decodeExtMimeMap(val: unknown): ExtMimeMap {
-  return tbUtil.decodeWithSchema(ExtMimeMapTSchema, val);
+  return tbUtil.decodeWithSchema<typeof ExtMimeMapTSchema, ExtMimeMap>(ExtMimeMapTSchema, val);
 }

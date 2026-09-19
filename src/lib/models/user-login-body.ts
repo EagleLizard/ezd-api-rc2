@@ -16,7 +16,10 @@ export const UserLoginBodySchema = {
 } as const;
 
 function decodeUserLoginBody(rawVal: unknown): UserLoginBody {
-  return tbUtil.decodeWithSchema(UserLoginBodyTSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof UserLoginBodyTSchema, UserLoginBody>(
+    UserLoginBodyTSchema,
+    rawVal
+  );
 }
 
 function checkUserLoginBody(rawVal: unknown): rawVal is UserLoginBody {

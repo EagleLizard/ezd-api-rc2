@@ -17,5 +17,5 @@ export const RoleRespSchema = {
 } as const;
 
 function decodeRoleResp(rawVal: unknown): RoleResp {
-  return tbUtil.decodeWithSchema(RoleRespTSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof RoleRespTSchema, RoleResp>(RoleRespTSchema, rawVal);
 }

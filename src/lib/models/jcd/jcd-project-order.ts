@@ -13,5 +13,8 @@ export const JcdProjectOrder = {
 } as const;
 
 function decodeJcdProjectOrder(rawVal: unknown): JcdProjectOrder {
-  return tbUtil.decodeWithSchema(JcdProjectOrderTSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof JcdProjectOrderTSchema, JcdProjectOrder>(
+    JcdProjectOrderTSchema,
+    rawVal
+  );
 }

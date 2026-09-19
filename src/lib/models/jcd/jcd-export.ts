@@ -10,6 +10,9 @@ export type JcdEntityExportDto = Static<typeof JcdEntityExportDtoTSchema>;
 export const JcdEntityExportDto = {
   schema: JcdEntityExportDtoTSchema,
   decode: function decodeJcdExportDto(rawVal: unknown): JcdEntityExportDto {
-    return tbUtil.decodeWithSchema(JcdEntityExportDtoTSchema, rawVal);
+    return tbUtil.decodeWithSchema<typeof JcdEntityExportDtoTSchema, JcdEntityExportDto>(
+      JcdEntityExportDtoTSchema,
+      rawVal
+    );
   },
 } as const;

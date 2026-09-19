@@ -20,5 +20,5 @@ export const JcdImage = {
 } as const;
 
 function decodeJcdImage(rawVal: unknown): JcdImage {
-  return tbUtil.decodeWithSchema(JcdImageTSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof JcdImageTSchema, JcdImage>(JcdImageTSchema, rawVal);
 }

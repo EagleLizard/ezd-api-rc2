@@ -33,5 +33,5 @@ export const SessionDtoSchema = {
 } as const;
 
 function sessionDtoDecode(rawVal: unknown): SessionDto {
-  return tbUtil.decodeWithSchema(SessionDtoTSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof SessionDtoTSchema, SessionDto>(SessionDtoTSchema, rawVal);
 }

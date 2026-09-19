@@ -19,7 +19,7 @@ describe('tb-util', () => {
       a: 'str',
       b: 1,
     } as const;
-    mockObj = tbUtil.decodeWithSchema(TSchemaMock, rawVal);
+    mockObj = tbUtil.decodeWithSchema<typeof TSchemaMock, TSchemaMock>(TSchemaMock, rawVal);
     expect(mockObj.a).toBe(rawVal.a);
     expect(mockObj.b).toBe(rawVal.b);
   });
@@ -28,7 +28,7 @@ describe('tb-util', () => {
       notExist: 'etc',
     } as const;
     expect(() => {
-      tbUtil.decodeWithSchema(TSchemaMock, rawVal);
+      tbUtil.decodeWithSchema<typeof TSchemaMock, TSchemaMock>(TSchemaMock, rawVal);
     }).toThrow(EzdError);
   });
   test('decode error throws validation info', () => {
@@ -37,7 +37,7 @@ describe('tb-util', () => {
       notExist: 'etc',
     } as const;
     try {
-      tbUtil.decodeWithSchema(TSchemaMock, rawVal);
+      tbUtil.decodeWithSchema<typeof TSchemaMock, TSchemaMock>(TSchemaMock, rawVal);
     } catch(e) {
       if(!(e instanceof EzdError) || e.code !== 'EZD_1.1') {
         throw e;

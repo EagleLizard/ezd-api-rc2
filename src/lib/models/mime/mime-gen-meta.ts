@@ -15,5 +15,5 @@ export const MimeGenMetaSchema = {
 } as const;
 
 function decodeMimeGenMeta(val: unknown): MimeGenMeta {
-  return tbUtil.decodeWithSchema(MimeGenMetaTSchema, val);
+  return tbUtil.decodeWithSchema<typeof MimeGenMetaTSchema, MimeGenMeta>(MimeGenMetaTSchema, val);
 }

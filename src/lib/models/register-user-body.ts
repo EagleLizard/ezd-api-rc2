@@ -17,7 +17,10 @@ export const RegisterUserBodySchema = {
 } as const;
 
 function registerUserBodyDecode(rawVal: unknown): RegisterUserBody {
-  return tbUtil.decodeWithSchema(RegisterUserBodyTSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof RegisterUserBodyTSchema, RegisterUserBody>(
+    RegisterUserBodyTSchema,
+    rawVal
+  );
 }
 
 function registerUserBodyCheck(rawVal: unknown): rawVal is RegisterUserBody {

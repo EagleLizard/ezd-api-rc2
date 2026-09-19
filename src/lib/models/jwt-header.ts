@@ -15,5 +15,5 @@ export const JwtHeaderSchema = {
 } as const;
 
 function decodeJwtHeader(rawVal: unknown): JwtHeader {
-  return tbUtil.decodeWithSchema(JwtHeaderTSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof JwtHeaderTSchema, JwtHeader>(JwtHeaderTSchema, rawVal);
 }

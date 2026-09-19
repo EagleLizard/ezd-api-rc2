@@ -25,5 +25,5 @@ export const mimeDbEntrySchema = {
 } as const;
 
 function decodeMimeDbEntry(val: unknown): MimeDbEntry {
-  return tbUtil.decodeWithSchema(MimeDbEntryTSchema, val);
+  return tbUtil.decodeWithSchema<typeof MimeDbEntryTSchema, MimeDbEntry>(MimeDbEntryTSchema, val);
 }

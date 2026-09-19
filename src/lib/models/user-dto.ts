@@ -20,5 +20,5 @@ export const UserDtoSchema = {
 } as const;
 
 function decodeUserDto(rawVal: unknown): UserDto {
-  return tbUtil.decodeWithSchema(UserDtoTSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof UserDtoTSchema, UserDto>(UserDtoTSchema, rawVal);
 }

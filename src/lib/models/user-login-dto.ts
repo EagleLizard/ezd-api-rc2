@@ -25,5 +25,8 @@ export const UserLoginDtoSchema = {
 } as const;
 
 function decodeUserLoginDto(rawVal: unknown): UserLoginDto {
-  return tbUtil.decodeWithSchema(UserLoginDtoTSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof UserLoginDtoTSchema, UserLoginDto>(
+    UserLoginDtoTSchema,
+    rawVal
+  );
 }

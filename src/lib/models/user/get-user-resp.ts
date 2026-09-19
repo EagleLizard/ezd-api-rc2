@@ -18,5 +18,8 @@ export const GetUserRespItem = {
 } as const;
 
 function decodeGetUserRespItem(rawVal: unknown): GetUserRespItem {
-  return tbUtil.decodeWithSchema(GetUserRespItemTSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof GetUserRespItemTSchema, GetUserRespItem>(
+    GetUserRespItemTSchema,
+    rawVal
+  );
 }

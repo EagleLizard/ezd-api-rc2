@@ -22,5 +22,5 @@ export const EzdTestV3 = {
   decode: decodeEzdTestV3,
 } as const;
 function decodeEzdTestV3(rawVal: unknown): EzdTestV3 {
-  return tbUtil.decodeWithSchema(EzdTestV3TSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof EzdTestV3TSchema, EzdTestV3>(EzdTestV3TSchema, rawVal);
 }

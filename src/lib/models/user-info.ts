@@ -16,5 +16,5 @@ export const UserInfoSchema = {
 };
 
 function userInfoDecode(rawVal: unknown): UserInfo {
-  return tbUtil.decodeWithSchema(UserInfoTSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof UserInfoTSchema, UserInfo>(UserInfoTSchema, rawVal);
 }

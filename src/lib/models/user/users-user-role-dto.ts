@@ -18,5 +18,8 @@ export const UsersUserRoleDto = {
 } as const;
 
 function decodeUsersUserRoleDto(rawVal: unknown): UsersUserRoleDto {
-  return tbUtil.decodeWithSchema(UsersUserRoleDtoTSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof UsersUserRoleDtoTSchema, UsersUserRoleDto>(
+    UsersUserRoleDtoTSchema,
+    rawVal
+  );
 }

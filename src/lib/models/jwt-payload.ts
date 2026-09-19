@@ -26,5 +26,5 @@ export const JwtPayloadSchema = {
 } as const;
 
 function decodeJwtPayload(rawVal: unknown): JwtPayload {
-  return tbUtil.decodeWithSchema(JwtPayloadTSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof JwtPayloadTSchema, JwtPayload>(JwtPayloadTSchema, rawVal);
 }

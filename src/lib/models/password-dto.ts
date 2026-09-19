@@ -20,5 +20,8 @@ export const PasswordDtoSchema = {
 } as const;
 
 function decodePasswordDto(rawVal: unknown): PasswordDto {
-  return tbUtil.decodeWithSchema(PasswordDtoTSchema, rawVal);
+  return tbUtil.decodeWithSchema<typeof PasswordDtoTSchema, PasswordDto>(
+    PasswordDtoTSchema,
+    rawVal
+  );
 }
