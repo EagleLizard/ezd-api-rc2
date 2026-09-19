@@ -103,4 +103,9 @@ export function registerAuthNRoutes(app: FastifyInstance) {
   );
 
   app.get('/v1/jcd/env/proj', {schema: jcdEnvCtrl.GetV3Proj}, jcdEnvCtrl.getV3Proj);
+  app.post(
+    '/v1/jcd/env/proj/:projKey/copy',
+    { schema: jcdEnvCtrl.PostV3ProjCopy },
+    jcdEnvCtrl.postV3ProjCopy
+  );
 }

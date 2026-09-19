@@ -11,6 +11,7 @@ import { authzService } from './authz-service';
 import { EzdError } from '../models/error/ezd-error';
 import { ezdCache, EzdCacheItem } from '../lib/ezd-cache';
 import { JcdProjKeyDto } from '../models/jcd/jcd-proj-key-dto';
+import { GcpKeyDto } from '../models/gcp/gcp-key-dto';
 
 const jcd_v3_db_project_kind = 'JcdProjectV3';
 const jcd_v3_db_image = 'JcdImageV3';
@@ -43,6 +44,7 @@ const jcdImagesCache = ezdCache.init('jcd_project_images', (val) => {
 /* JCD project service _*/
 export const jcdProjService = new class JcdProjService {
   getKeys = getKeys;
+  copyProjV3 = copyProjV3;
   getProjPreviews = getProjPreviews;
   getProjPreviewByRoute = getProjPreviewByRoute;
   getProjects = getProjects;
@@ -59,6 +61,31 @@ async function getKeys(env?: string): Promise<JcdProjKeyDto[]> {
   let queryRes = await query.run();
   let projKeyDtos = queryRes[0].map(rawVal => JcdProjKeyDto.decode(rawVal));
   return projKeyDtos;
+}
+
+/*
+jcd v3 entities:
+  - JcdProjectKeyV3
+  - JcdProjectOrderV3
+  - JcdImageV3
+  - JcdProjectV3
+_*/
+type JcdEnvCopyProjOpts = {
+  projKey: string;
+  fromEnv?: string;
+  toEnv: string;
+} & {};
+async function copyProjV3(opts: JcdEnvCopyProjOpts) {
+  let queryRes = await gcpDb
+    .query('JcdProjectKeyV3', opts.fromEnv)
+    .filter('projectKey', '=', opts.projKey)
+    .limit(1)
+    .run()
+  ;
+  let projKeyDto = JcdProjKeyDto.decode(queryRes[0][0]);
+  let projKeyEntityKey = GcpKeyDto.decode(Object.assign({}, queryRes[0][0]?.[gcpDb.KEY]));
+  console.log(projKeyDto);
+  console.log(projKeyEntityKey);
 }
 
 async function getProjPreviews(): Promise<JcdProjPreview[]> {
@@ -123,6 +150,7 @@ async function getProjPreviewByRoute(
 
 async function getProjTitleImage(projectKey: string, ns?: string): Promise<JcdImage> {
   let cacheKey = `jcd_title_image_${projectKey}${ns ? `-${ns}` : ''}`;
+  console.log(cacheKey);
   let cached = jcdImagesCache.get(cacheKey)?.[0];
   if(cached !== undefined) {
     return cached;

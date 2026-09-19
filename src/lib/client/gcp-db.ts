@@ -4,6 +4,7 @@ import {
   InsertResponse,
   PathType,
   Query,
+  Transaction,
 } from '@google-cloud/datastore';
 import type { Entities, entity } from '@google-cloud/datastore/build/src/entity';
 import type {
@@ -85,6 +86,10 @@ export const gcpDb = new class GcpDb {
       return _datastore.insert(entities, callback);
     }
     return _datastore.insert(entities);
+  }
+
+  transaction(): Transaction {
+    return _datastore.transaction();
   }
 
   key(options: entity.KeyOptions): entity.Key

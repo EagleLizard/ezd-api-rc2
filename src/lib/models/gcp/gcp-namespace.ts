@@ -11,5 +11,8 @@ const GcpNamespaceTSchema = Type.Object({
 export type GcpNamespace = Static<typeof GcpNamespaceTSchema>;
 export const GcpNamespace = {
   schema: GcpNamespaceTSchema,
-  decode: (rawVal: unknown): GcpNamespace => tbUtil.decodeWithSchema(GcpNamespaceTSchema, rawVal),
+  decode: (rawVal: unknown): GcpNamespace => tbUtil.decodeWithSchema<
+    typeof GcpNamespaceTSchema,
+    GcpNamespace
+  >(GcpNamespaceTSchema, rawVal),
 } as const;

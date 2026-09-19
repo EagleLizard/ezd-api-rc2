@@ -37,7 +37,7 @@ function registerCacheItem<T>(
 export class EzdCacheItem<T = unknown> {
   keyPrefix: string;
   decodeFn: (val: unknown) => T;
-  ttlMs = 1_000 * 60 * 20;
+  ttlMs = 1_000 * 60 * 1;
   // _cache_store: IEzdCacheStore<string, EzdCacheStoreItem> = cache_store;
 
   private constructor(keyPrefix: string, decodeFn: (val: unknown) => T) {
@@ -72,6 +72,28 @@ export class EzdCacheItem<T = unknown> {
 
   _getFullKey(key: string): string {
     return `${this.keyPrefix}${cache_key_sep}${key}`;
+  }
+
+  getItemKey(
+    itemId: string,
+    addons: (string | number | boolean | undefined)[] = [],
+    opts: {
+      prefix?: string;
+      delim?: string;
+      addon_delim?: string;
+    } = {}
+  ): string {
+    const delim = opts.delim ?? '_';
+    const addon_delim = opts.addon_delim ?? '-';
+    const prefix = (opts.prefix === undefined)
+      ? ''
+      : `${opts.prefix}${delim}`
+    ;
+    let itemKey = [ `${prefix}${itemId}`, ...addons ]
+      .map(keyPart => `${keyPart ?? ''}`)
+      .join(addon_delim)
+    ;
+    return itemKey;
   }
 
   static init<K>(
