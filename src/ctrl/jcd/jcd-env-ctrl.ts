@@ -7,6 +7,7 @@ import { JcdProjKeyDto } from '../../lib/models/jcd/jcd-proj-key-dto';
 import { authzService } from '../../lib/service/authz-service';
 import { jcdProjService } from '../../lib/service/jcd-proj-service';
 import { jcdService } from '../../lib/service/jcd-service';
+import { GcpKeyDto } from '../../lib/models/gcp/gcp-key-dto';
 
 /*
 Env and Namespace are synonymous
@@ -44,7 +45,13 @@ const PostV3ProjCopy = {
     toEnv: Type.String(),
   }),
   response: {
-    200: Type.Object({ result: Type.String() }), // todo: placeholder, replace
+    200: Type.Object({
+      outcome: Type.String(),
+      ops: Type.Object({
+        inserted: Type.Array(GcpKeyDto.schema),
+        skipped: Type.Array(GcpKeyDto.schema),
+      }),
+    }),
     403: Type.Object({ errMsg: Type.String() }),
   }
 } as const satisfies FastifySchema;
@@ -66,8 +73,19 @@ async function postV3ProjCopy(
     /* todo: remove this when ready to copy to default env/ns _*/
     return res.status(403).send({ errMsg: 'cannot copy to default env (yet)' });
   }
-  await jcdProjService.copyProjV3({ projKey, fromEnv, toEnv });
-  return res.status(200).send({ result: 'success' });
+  let copyRes = await jcdProjService.copyProjV3({ projKey, fromEnv, toEnv });
+  let inserted: GcpKeyDto[] = copyRes.inserted.map(insertedKey => {
+    return GcpKeyDto.decode(Object.assign({}, insertedKey));
+  });
+  let skipped: GcpKeyDto[] = copyRes.skipped.map(skippedKey => {
+    return GcpKeyDto.decode(Object.assign({}, skippedKey));
+  });
+  return res.status(200).send({
+    outcome: 'success',
+    ops: {
+      inserted,
+      skipped,
+    }});
 }
 
 export const jcdEnvCtrl = {

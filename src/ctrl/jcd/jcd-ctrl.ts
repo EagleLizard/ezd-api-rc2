@@ -45,27 +45,29 @@ async function getProjects(
   if(!hasJcdPerm) {
     return res.status(403).send({});
   }
+  let ns = req.query.ns;
+  let route = req.query.route;
   try {
     if(req.query.preview) {
-      if(req.query.route !== undefined) {
+      if(route !== undefined) {
         let jcdProjPreview = await jcdProjService
-          .getProjPreviewByRoute(req.query.route, req.query.ns);
+          .getProjPreviewByRoute(route, ns);
         if(jcdProjPreview === undefined) {
           return res.status(404).send({ message: 'preview not found' });
         }
         return res.status(200).send(jcdProjPreview);
       }
-      let projPreviews = await jcdProjService.getProjPreviews();
+      let projPreviews = await jcdProjService.getProjPreviews(ns);
       return res.status(200).send(projPreviews);
     }
-    if(req.query.route !== undefined) {
-      let jcdProject = await jcdProjService.getProjectByRoute(req.query.route);
+    if(route !== undefined) {
+      let jcdProject = await jcdProjService.getProjectByRoute(route, ns);
       if(jcdProject === undefined) {
         return res.status(404).send({ message: 'project not found' });
       }
       return res.status(200).send(jcdProject);
     }
-    let jcdProjects = await jcdProjService.getProjects();
+    let jcdProjects = await jcdProjService.getProjects(ns);
     return res.status(200).send(jcdProjects);
   } catch(e) {
     console.error(e);

@@ -107,6 +107,12 @@ export const gcpDb = new class GcpDb {
     return _datastore.int(val);
   }
 
+  isKey(val: unknown): val is entity.Key {
+    if(!prim.is_object(val)) {
+      return false;
+    }
+    return Datastore.isKey(val);
+  }
   get KEY(): symbol {
     return _datastore.KEY;
   }
