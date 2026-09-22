@@ -9,10 +9,16 @@ import {
 import type { Entities, entity } from '@google-cloud/datastore/build/src/entity';
 import type {
   CreateReadStreamOptions,
+  DeleteCallback,
+  DeleteResponse,
   GetCallback,
   GetResponse,
 } from '@google-cloud/datastore/build/src/request';
 import { prim } from '../../util/validate-primitives';
+import { EzdError } from '../models/error/ezd-error';
+import { logger } from '../logger/logger';
+import { ezdErrorCodes } from '../models/error/ezd-error-codes';
+import { jcdService } from '../service/jcd-service';
 
 const _datastore = new Datastore();
 
@@ -86,6 +92,41 @@ export const gcpDb = new class GcpDb {
       return _datastore.insert(entities, callback);
     }
     return _datastore.insert(entities);
+  }
+
+  delete(entities: Entities): Promise<DeleteResponse>
+  delete(entities: Entities, callback: DeleteCallback): void
+  delete(entities: Entities, callback?: DeleteCallback): Promise<DeleteResponse> | void {
+    let _entities = Array.isArray(entities)
+      ? entities
+      : entities !== undefined
+        ? [ entities ]
+        : []
+    ;
+    /*
+    check to prevent deletes from default
+    _*/
+    for(let i = 0; i < _entities.length; i++) {
+      let _entity = _entities[i];
+      if(!gcpDb.isKey(_entity)) {
+        let errMsg = 'entity is not a key';
+        logger.error({entity: _entity}, errMsg);
+        throw new EzdError(errMsg, ezdErrorCodes.jcd_env_del_not_allowed);
+      }
+      if(
+        _entity.namespace === undefined
+        || _entity.namespace.includes('default')
+        || _entity.namespace === jcdService.default_env_id
+      ) {
+        let errMsg = 'cannot delete from default namespace (yet)';
+        logger.error({ entity: _entity }, errMsg);
+        throw new EzdError(errMsg, ezdErrorCodes.jcd_env_del_not_allowed);
+      }
+    }
+    if(callback !== undefined) {
+      return _datastore.delete(entities, callback);
+    }
+    return _datastore.delete(entities, callback);
   }
 
   transaction(): Transaction {

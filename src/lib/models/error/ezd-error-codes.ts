@@ -30,6 +30,7 @@ export const ezdErrorCodes = {
   permission_denied_jcd: 'EZD_5.4',
 
   jcd_env_copy_not_allowed: 'JCD_1.0',
+  jcd_env_del_not_allowed: 'JCD_1.1',
 } as const;
 
 export type EzdErrorCode = typeof ezdErrorCodes[keyof typeof ezdErrorCodes];

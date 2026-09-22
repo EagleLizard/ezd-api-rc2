@@ -15,6 +15,7 @@ import { JcdProjKeyDto } from '../models/jcd/jcd-proj-key-dto';
 import { prim } from '../../util/validate-primitives';
 import { jcdService } from './jcd-service';
 import { ezdErrorCodes } from '../models/error/ezd-error-codes';
+import { JcdV3GcpEntity } from '../models/jcd/jcd-v3-gcp-entity';
 
 const jcd_v3_project_key = 'JcdProjectKeyV3';
 const jcd_v3_db_project_kind = 'JcdProjectV3';
@@ -49,8 +50,10 @@ const jcdImagesCache = ezdCache.init('jcd_project_images', (val) => {
 export const jcdProjService = new class JcdProjService {
   getKeys = getKeys;
   copyProjV3 = copyProjV3;
+  deleteProjV3 = deleteProjV3;
   getProjPreviews = getProjPreviews;
   getProjPreviewByRoute = getProjPreviewByRoute;
+  getProject = getProject;
   getProjects = getProjects;
   getProjectByRoute = getProjectByRoute;
   getProjectOrders = getProjectOrders;
@@ -68,23 +71,21 @@ async function getKeys(env?: string): Promise<JcdProjKeyDto[]> {
 }
 
 /*
-jcd v3 entities:
-  - JcdProjectKeyV3
-  - JcdProjectOrderV3
-  - JcdImageV3
-  - JcdProjectV3
-_impl. plan_
+  jcd v3 entities:
+    - JcdProjectKeyV3
+    - JcdProjectOrderV3
+    - JcdImageV3
+    - JcdProjectV3
   copy jcd v3 project from one namespace (env) to another
-  want to check if a copy can happen:
     1. check if the operation will overwrite any entities on the dest env
-      - not sure what options exist to handle this case gracefully
+      - if so, skip those
     2. copy all of the entities over to the dest env (toEnv)
     3. for now, it's an error case if toEnv is the default GCP namespace
 _*/
-type JcdV3GcpEntity<T = Record<string | number | symbol, unknown>> = {
-  key: entity.Key;
-  data: T;
-} & {};
+// type JcdV3GcpEntity<T = Record<string | number | symbol, unknown>> = {
+//   key: entity.Key;
+//   data: T;
+// } & {};
 type JcdEnvCopyProjRes = {
   inserted: entity.Key[];
   skipped: entity.Key[];
@@ -101,19 +102,16 @@ async function copyProjV3(opts: JcdEnvCopyProjOpts): Promise<JcdEnvCopyProjRes> 
       ezdErrorCodes.jcd_env_copy_not_allowed
     );
   }
+  if(opts.fromEnv === opts.toEnv) {
+    throw new EzdError('cannot copy env to self', ezdErrorCodes.jcd_env_copy_not_allowed);
+  }
   let srcEntitiesPromises = [
     getV3SrcEntities(jcd_v3_project_key, opts.projKey),
     getV3SrcEntities(jcd_v3_db_project_order, opts.projKey),
     getV3SrcEntities(jcd_v3_db_project_kind, opts.projKey),
     getV3SrcEntities(jcd_v3_db_image, opts.projKey),
   ];
-  let srcEntityArrs = (await Promise.all(srcEntitiesPromises));
-  let srcEntities: JcdV3GcpEntity[] = [];
-  for(let i = 0; i < srcEntityArrs.length; i++) {
-    for(let k = 0; k < srcEntityArrs[i].length; k++) {
-      srcEntities.push(srcEntityArrs[i][k]);
-    }
-  };
+  let srcEntities: JcdV3GcpEntity[] = (await Promise.all(srcEntitiesPromises)).flat();
   let destInsertEntityKeys: entity.Key[] = srcEntities.map(srcEntity => {
     assert(prim.isString(srcEntity.key.name));
     let key = gcpDb.key({
@@ -125,16 +123,10 @@ async function copyProjV3(opts: JcdEnvCopyProjOpts): Promise<JcdEnvCopyProjRes> 
   /*
   for now, skip entities that exist in the destination
   _*/
-  let rawDestEntities = await gcpDb.get(destInsertEntityKeys);
-  let destEntities: JcdV3GcpEntity[] = rawDestEntities[0].map((rawEntity: unknown) => {
-    assert(prim.isObject(rawEntity));
-    let key = rawEntity?.[gcpDb.KEY];
-    assert(gcpDb.isKey(key));
-    return {
-      key,
-      data: rawEntity,
-    };
-  });
+  let rawDestEntities = (await gcpDb.get(destInsertEntityKeys))[0];
+  assert(Array.isArray(rawDestEntities));
+  let destEntities: JcdV3GcpEntity[] = rawDestEntities.map(JcdV3GcpEntity.decode);
+
   let destInsertEntities: JcdV3GcpEntity[] = [];
   let insertedKeys: entity.Key[] = [];
   let skippedKeys: entity.Key[] = [];
@@ -164,6 +156,7 @@ async function copyProjV3(opts: JcdEnvCopyProjOpts): Promise<JcdEnvCopyProjRes> 
     }
   }
   await gcpDb.insert(destInsertEntities);
+  ezdCache.bust();
   return {
     inserted: insertedKeys,
     skipped: skippedKeys,
@@ -178,18 +171,43 @@ async function getV3SrcEntities(
   let query = gcpDb.query(entityName, env)
     .filter('projectKey', '=', projKey)
   ;
-  let queryRes = await query.run();
-  let entities: JcdV3GcpEntity[] = [];
-  for(let i = 0; i < queryRes[0].length; i++) {
-    let rawEntity = queryRes[0][i];
-    assert(gcpDb.isKey(rawEntity?.[gcpDb.KEY]));
-    let key = rawEntity[gcpDb.KEY];
-    entities.push({
-      key,
-      data: rawEntity
+  let entities: JcdV3GcpEntity[] = (await query.run())[0].map(JcdV3GcpEntity.decode);
+  return entities;
+}
+
+type DeleteJcdProjV3Opts = {
+  env?: string;
+  img?: boolean; // include images
+} & {};
+async function deleteProjV3(projKey: string, opts: DeleteJcdProjV3Opts = {}): Promise<void> {
+  let env = opts.env;
+  if(env === jcdService.default_env_id || env?.includes('default')) {
+    throw new EzdError(
+      'cannot delete proj from default namespace (yet)',
+      ezdErrorCodes.jcd_env_del_not_allowed
+    );
+  }
+  let [ projDbKey, projKeyDbKey , projOrderDbKey ] = [
+    jcd_v3_db_project_kind,
+    jcd_v3_project_key,
+    jcd_v3_db_project_order
+  ].map(kind => gcpDb.key({
+    namespace: env,
+    path: [ kind, projKey ],
+  }));
+  let imgDbKeys: entity.Key[] = [];
+  if(opts.img) {
+    let imageKeysQueryRes = await gcpDb.query(jcd_v3_db_image, env)
+      .select('__key__')
+      .filter('projectKey', '=', projKey)
+      .run()
+    ;
+    imgDbKeys = imageKeysQueryRes[0].map((rawEntity: unknown) => {
+      return JcdV3GcpEntity.decode(rawEntity).key;
     });
   }
-  return entities;
+  await gcpDb.delete([ projDbKey, projKeyDbKey, projOrderDbKey, ...imgDbKeys ]);
+  ezdCache.bust();
 }
 
 async function getProjPreviews(env?: string): Promise<JcdProjPreview[]> {
@@ -272,6 +290,25 @@ async function getProjTitleImage(projectKey: string, ns?: string): Promise<JcdIm
   let jcdImage = JcdImage.decode(imageQueryRes[0]);
   jcdImagesCache.set(cacheKey, [ jcdImage ]);
   return jcdImage;
+}
+
+async function getProject(projKey: string, env?: string): Promise<JcdProject | undefined> {
+  let cacheKey = `${projKey}${env ? `-${env}` : ''}`;
+  let proj = jcdProjCache.get(cacheKey);
+  if(proj !== undefined) {
+    return proj;
+  }
+  let queryRes = await gcpDb.query(jcd_v3_db_project_kind, env)
+    .filter('projectKey', '=', projKey)
+    .limit(1)
+    .run()
+  ;
+  if(queryRes[0][0] === undefined) {
+    return;
+  }
+  proj = JcdProject.decode(queryRes[0][0]);
+  jcdProjCache.set(cacheKey, proj);
+  return proj;
 }
 
 async function getProjects(env?: string): Promise<JcdProject[]> {

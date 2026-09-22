@@ -25,6 +25,7 @@ const cache_store: Map<string, EzdCacheStoreItem> = new Map();
 
 export const ezdCache = {
   init: registerCacheItem,
+  bust: bustEzdCache,
 };
 
 function registerCacheItem<T>(
@@ -32,6 +33,14 @@ function registerCacheItem<T>(
   decodeFn: (val: unknown) => T,
 ) {
   return EzdCacheItem.init(keyPrefix, decodeFn);
+}
+
+/*
+busts entire cache.
+TODO: enable granular cache bust
+_*/
+function bustEzdCache() {
+  cache_store.clear();
 }
 
 export class EzdCacheItem<T = unknown> {

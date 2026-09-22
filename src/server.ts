@@ -36,6 +36,7 @@ export async function initServer() {
   app = app.register(cors, {
     // origin: '*',
     origin: [ ezdConfig.EZD_WEB_ORIGIN ],
+    methods: [ 'GET', 'HEAD', 'PUT', 'POST', 'DELETE', ],
     // origin: false,
     credentials: true,
   });

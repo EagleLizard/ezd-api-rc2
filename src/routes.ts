@@ -108,4 +108,9 @@ export function registerAuthNRoutes(app: FastifyInstance) {
     { schema: jcdEnvCtrl.PostV3ProjCopy },
     jcdEnvCtrl.postV3ProjCopy
   );
+  app.delete(
+    '/v1/jcd/env/proj/:projKey',
+    { schema: jcdEnvCtrl.DeleteV3Proj },
+    jcdEnvCtrl.deleteV3Proj
+  );
 }

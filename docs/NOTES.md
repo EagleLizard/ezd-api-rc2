@@ -25,6 +25,11 @@ Error stack traces:
 tail -f logs/app.log | jq -r 'select(.level == "error") | .err.stack'
 ```
 
+Tail logs excluding image requests:
+
+```bash
+tail -f logs/app.log | jq 'select((.res.url//""|startswith("/v1/jcd/img")|not)) | select((.req.url//""|startswith("/v1/jcd/img")|not))'
+```
 ## Authentication
 
 ### Sessions

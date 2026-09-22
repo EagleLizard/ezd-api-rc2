@@ -26,4 +26,8 @@ export class EzdError extends Error {
     /* for logging: include code and message _*/
     this.message = `${this.code}: ${this.ezdMsg}`;
   }
+
+  static is(e: unknown): e is EzdError {
+    return e instanceof EzdError;
+  }
 }
