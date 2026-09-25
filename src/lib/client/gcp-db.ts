@@ -32,6 +32,16 @@ export const gcpDb = new class GcpDb {
     if(kindOrNot !== undefined) {
       /* first param is namespace _*/
       ns = kindOrNamespace as string;
+      /*
+        If the namespace is the default env,
+          treat it as the default namespace by omitting it from the call.
+      _*/
+
+      if(jcdService.checkDefaultEnv(ns)) {
+        return prim.isString(kindOrNot)
+          ? _datastore.createQuery(kindOrNot)
+          : _datastore.createQuery(kindOrNot);
+      }
       return (typeof kindOrNot === 'string')
         ? _datastore.createQuery(ns, kindOrNot)
         : _datastore.createQuery(ns, kindOrNot)

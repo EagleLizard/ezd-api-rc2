@@ -87,29 +87,29 @@ export function registerAuthNRoutes(app: FastifyInstance) {
   app.get('/v1/jcd/project/img', { schema: jcdCtrl.GetJcdProjectImg }, jcdCtrl.getProjectImg);
   app.get(`${jcdCtrl.jcd_img_route_prefix}/*`, { schema: jcdCtrl.GetJcdImg }, jcdCtrl.getImg);
   app.get('/v1/jcd/ezd-test', { schema: jcdCtrl.GetEzdTest }, jcdCtrl.getEzdTest);
-  app.get('/v1/jcd/ns', { schema: jcdCtrl.GetJcdNamespace}, jcdCtrl.getJcdNamespace);
   app.get('/v1/jcd/export', { schema: jcdCtrl.GetJcdExport }, jcdCtrl.getJcdExport);
 
-  app.get('/v1/jcd/env/kind', { schema: jcdCtrl.GetJcdKinds }, jcdCtrl.getJcdKinds);
+  app.get('/v1/jcd/env', { schema: jcdCtrl.GetJcdNamespace}, jcdCtrl.getJcdNamespace);
+  app.get('/v1/jcd/env/:envKey/kind', { schema: jcdCtrl.GetJcdKinds }, jcdCtrl.getJcdKinds);
   app.get(
-    '/v1/jcd/env/kind/:entityKind',
+    '/v1/jcd/env/:envKey/kind/:entityKind',
     { schema: jcdCtrl.GetJcdKindEntities },
     jcdCtrl.getJcdKindEntities,
   );
   app.post(
-    '/v1/jcd/env/kind/:entityKind/copy',
+    '/v1/jcd/env/:fromEnvKey/kind/:entityKind/copy/:toEnvKey',
     { schema: jcdCtrl.PostJcdCopyEnvKind },
     jcdCtrl.postJcdCopyEnvKind
   );
 
-  app.get('/v1/jcd/env/proj', {schema: jcdEnvCtrl.GetV3Proj}, jcdEnvCtrl.getV3Proj);
+  app.get('/v1/jcd/env/:envKey/proj', {schema: jcdEnvCtrl.GetV3Proj}, jcdEnvCtrl.getV3Proj);
   app.post(
-    '/v1/jcd/env/proj/:projKey/copy',
+    '/v1/jcd/env/:fromEnvKey/proj/:projKey/copy/:toEnvKey',
     { schema: jcdEnvCtrl.PostV3ProjCopy },
     jcdEnvCtrl.postV3ProjCopy
   );
   app.delete(
-    '/v1/jcd/env/proj/:projKey',
+    '/v1/jcd/env/:envKey/proj/:projKey',
     { schema: jcdEnvCtrl.DeleteV3Proj },
     jcdEnvCtrl.deleteV3Proj
   );

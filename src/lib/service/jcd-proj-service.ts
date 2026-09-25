@@ -63,7 +63,7 @@ export const jcdProjService = new class JcdProjService {
   getEzdTest = getEzdTest;
 };
 
-async function getKeys(env?: string): Promise<JcdProjKeyDto[]> {
+async function getKeys(env: string): Promise<JcdProjKeyDto[]> {
   let query = gcpDb.query('JcdProjectKeyV3', env);
   let queryRes = await query.run();
   let projKeyDtos = queryRes[0].map(rawVal => JcdProjKeyDto.decode(rawVal));
@@ -92,11 +92,15 @@ type JcdEnvCopyProjRes = {
 } & {};
 type JcdEnvCopyProjOpts = {
   projKey: string;
-  fromEnv?: string;
+  fromEnv: string;
   toEnv: string;
 } & {};
 async function copyProjV3(opts: JcdEnvCopyProjOpts): Promise<JcdEnvCopyProjRes> {
-  if(opts.toEnv === jcdService.default_env_id || opts.toEnv.includes('default')) {
+  if(
+    opts.toEnv === jcdService.default_env_id
+    || opts.toEnv.includes('default')
+    || opts.toEnv === undefined
+  ) {
     throw new EzdError(
       'copy to default env not permitted yet',
       ezdErrorCodes.jcd_env_copy_not_allowed
@@ -106,10 +110,10 @@ async function copyProjV3(opts: JcdEnvCopyProjOpts): Promise<JcdEnvCopyProjRes> 
     throw new EzdError('cannot copy env to self', ezdErrorCodes.jcd_env_copy_not_allowed);
   }
   let srcEntitiesPromises = [
-    getV3SrcEntities(jcd_v3_project_key, opts.projKey),
-    getV3SrcEntities(jcd_v3_db_project_order, opts.projKey),
-    getV3SrcEntities(jcd_v3_db_project_kind, opts.projKey),
-    getV3SrcEntities(jcd_v3_db_image, opts.projKey),
+    getV3SrcEntities(jcd_v3_project_key, opts.projKey, opts.fromEnv),
+    getV3SrcEntities(jcd_v3_db_project_order, opts.projKey, opts.fromEnv),
+    getV3SrcEntities(jcd_v3_db_project_kind, opts.projKey, opts.fromEnv),
+    getV3SrcEntities(jcd_v3_db_image, opts.projKey, opts.fromEnv),
   ];
   let srcEntities: JcdV3GcpEntity[] = (await Promise.all(srcEntitiesPromises)).flat();
   let destInsertEntityKeys: entity.Key[] = srcEntities.map(srcEntity => {
@@ -166,7 +170,7 @@ async function copyProjV3(opts: JcdEnvCopyProjOpts): Promise<JcdEnvCopyProjRes> 
 async function getV3SrcEntities(
   entityName: string,
   projKey: string,
-  env?: string
+  env: string
 ): Promise<JcdV3GcpEntity[]> {
   let query = gcpDb.query(entityName, env)
     .filter('projectKey', '=', projKey)
@@ -176,12 +180,12 @@ async function getV3SrcEntities(
 }
 
 type DeleteJcdProjV3Opts = {
-  env?: string;
+  env: string;
   img?: boolean; // include images
 } & {};
-async function deleteProjV3(projKey: string, opts: DeleteJcdProjV3Opts = {}): Promise<void> {
+async function deleteProjV3(projKey: string, opts: DeleteJcdProjV3Opts): Promise<void> {
   let env = opts.env;
-  if(env === jcdService.default_env_id || env?.includes('default')) {
+  if(env === jcdService.default_env_id || env.includes('default') || env === undefined) {
     throw new EzdError(
       'cannot delete proj from default namespace (yet)',
       ezdErrorCodes.jcd_env_del_not_allowed
@@ -210,7 +214,7 @@ async function deleteProjV3(projKey: string, opts: DeleteJcdProjV3Opts = {}): Pr
   ezdCache.bust();
 }
 
-async function getProjPreviews(env?: string): Promise<JcdProjPreview[]> {
+async function getProjPreviews(env: string): Promise<JcdProjPreview[]> {
   let cacheKey = `${env ? `-${env}` : ''}`;
   let cached = jcdProjectPreviewsCache.get(cacheKey);
   if(cached !== undefined) {
@@ -246,19 +250,12 @@ async function getProjPreviews(env?: string): Promise<JcdProjPreview[]> {
 
 async function getProjPreviewByRoute(
   route: string,
-  ns?: string
+  ns: string
 ): Promise<JcdProjPreview | undefined> {
-  // let [ jcdProj, jcdProjOrders ] = await Promise.all([
-  //   jcdProjService.getProjectByRoute(route),
-  //   jcdProjService.getProjectOrders(),
-  // ]);
   let jcdProj = await jcdProjService.getProjectByRoute(route, ns);
   if(jcdProj === undefined) {
     return undefined;
   }
-  // let projOrder = jcdProjOrders.find((projOrder) => {
-  //   return projOrder.projectKey === jcdProj.projectKey;
-  // });
   let jcdImage = await getProjTitleImage(jcdProj.projectKey, ns);
   let projPreview: JcdProjPreview = {
     projectKey: jcdProj.projectKey,
@@ -311,14 +308,14 @@ async function getProject(projKey: string, env?: string): Promise<JcdProject | u
   return proj;
 }
 
-async function getProjects(env?: string): Promise<JcdProject[]> {
+async function getProjects(env: string): Promise<JcdProject[]> {
   let query = gcpDb.query(jcd_v3_db_project_kind, env);
   let projectsRes = await query.run();
   let jcdProjects = projectsRes[0].map(JcdProject.decode);
   return jcdProjects;
 }
 
-async function getProjectByRoute(routeKey: string, ns?: string): Promise<JcdProject | undefined> {
+async function getProjectByRoute(routeKey: string, ns: string): Promise<JcdProject | undefined> {
   let cacheKey = `${routeKey}${ns ? `_${ns}` : ''}`;
   let cachedProj = jcdProjCache.get(cacheKey);
   if(cachedProj !== undefined) {
@@ -367,7 +364,7 @@ async function getProjectOrders(env?: string): Promise<JcdProjectOrder[]> {
   return jcdProjectOrders;
 }
 
-async function getTitleImages(env?: string): Promise<JcdImage[]> {
+async function getTitleImages(env: string): Promise<JcdImage[]> {
   let cacheKey = `${jcd_title_images_cache_key}${env ? `-${env}` : ''}`;
   let cached = jcdImagesCache.get(cacheKey);
   if(cached !== undefined) {

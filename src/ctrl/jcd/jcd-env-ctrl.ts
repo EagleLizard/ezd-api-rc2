@@ -16,8 +16,8 @@ Env and Namespace are synonymous
 _*/
 
 const GetV3Proj = {
-  querystring: Type.Object({
-    env: Type.Optional(Type.String()),
+  params: Type.Object({
+    envKey: Type.String(),
   }),
   response: {
     200: Type.Array(JcdProjKeyDto.schema),
@@ -31,20 +31,18 @@ async function getV3Proj(req: ReqTB<GetV3Proj>, res: RepTB<GetV3Proj>): Promise<
   if(!hasPerm) {
     return res.status(403).send({ errMsg: 'Permission denied' });
   }
-  let env = req.query.env;
+  let env = req.params.envKey;
   let projKeyDtos = await jcdProjService.getKeys(env);
   return res.status(200).send(projKeyDtos);
 }
 
 const PostV3ProjCopy = {
   params: Type.Object({
-    projKey: Type.String(),
-  }),
-  body: Type.Object({
     /* When fromEnv is omitted, will be default env _*/
-    fromEnv: Type.Optional(Type.String()),
+    fromEnvKey: Type.String(),
     /* When toEnv is '1', will be default env _*/
-    toEnv: Type.String(),
+    toEnvKey: Type.String(),
+    projKey: Type.String(),
   }),
   response: {
     200: Type.Object({
@@ -67,8 +65,8 @@ async function postV3ProjCopy(
   if(!hasPerm) {
     return res.status(403).send({ errMsg: 'Permission denied' });
   }
-  let fromEnv = req.body.fromEnv;
-  let toEnv = req.body.toEnv;
+  let fromEnv = req.params.fromEnvKey;
+  let toEnv = req.params.toEnvKey;
   let projKey = req.params.projKey;
 
   if(toEnv === jcdService.default_env_id || toEnv.includes('default')) {
@@ -96,9 +94,9 @@ async function postV3ProjCopy(
 const DeleteV3Proj = {
   params: Type.Object({
     projKey: Type.String(),
+    envKey: Type.String(),
   }),
   querystring: Type.Object({
-    env: Type.Optional(Type.String()),
     img: Type.Optional(Type.Boolean()),
   }),
   response: {
@@ -114,8 +112,9 @@ async function deleteV3Proj(req: ReqTB<DeleteV3Proj>, res: RepTB<DeleteV3Proj>):
     return res.status(403).send({ errMsg: 'Permission denied' });
   }
   let projKey = req.params.projKey;
-  let env = req.query.env;
-  let img = req.query.img;
+  let env = req.params.envKey;
+  // let img = req.query.img;
+  let img = undefined;
   try {
     await jcdProjService.deleteProjV3(projKey, { env, img });
   } catch(e) {

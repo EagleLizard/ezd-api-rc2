@@ -11,6 +11,7 @@ const default_env_id = '1';
 
 export const jcdService = {
   default_env_id: default_env_id,
+  checkDefaultEnv: checkDefaultEnv,
 
   getNamespaces: getNamespaces,
   getEntityKinds: getEntityKinds,
@@ -56,15 +57,20 @@ async function getEntityKinds(ns?: string): Promise<GcpKey[]> {
 /*
 name is either a GCP key name or id.
 _*/
-async function getKindEntityByName(entityKey: string, name: string, ns?: string): Promise<unknown> {
+async function getKindEntityByName(entityKey: string, name: string, env: string): Promise<unknown> {
 
   /*
   need to check if incoming name val could be an integer.
     If so, we need to convert it to the GCP internal value.
   _*/
-  let intOrName: entity.Int | string = /^\d+$/g.test(name.trim())
+  name = name.trim();
+  let intOrName: entity.Int | string = /^\d+$/g.test(name)
     ? gcpDb.int(name)
     : name
+  ;
+  let ns = jcdService.checkDefaultEnv(env)
+    ? undefined
+    : env
   ;
   let key = gcpDb.key({
     namespace: ns,
@@ -74,11 +80,8 @@ async function getKindEntityByName(entityKey: string, name: string, ns?: string)
   return res[0];
 }
 
-async function getEntitiesByKind(entityKey: string, ns?: string): Promise<GcpKey[]> {
-  let query = (ns === undefined)
-    ? gcpDb.createQuery(entityKey)
-    : gcpDb.createQuery(ns, entityKey)
-  ;
+async function getEntitiesByKind(entityKey: string, env: string): Promise<GcpKey[]> {
+  let query = gcpDb.query(entityKey, env);
   query = query.select('__key__');
   let queryRes = await query.run();
   let rawEntityKeys = queryRes[0];
@@ -92,7 +95,7 @@ _*/
 async function copyEnvKindEntity(opts: {
   entityKind: string;
   name: string;
-  fromEnv?: string;
+  fromEnv: string;
   toEnv: string;
 }) {
   if(opts.toEnv === default_env_id) {
@@ -101,8 +104,8 @@ async function copyEnvKindEntity(opts: {
   if(
     opts.fromEnv === opts.toEnv
     || (
-      opts.fromEnv === undefined
-      && opts.toEnv === default_env_id
+      (opts.fromEnv === undefined || jcdService.checkDefaultEnv(opts.fromEnv))
+      && (jcdService.checkDefaultEnv(opts.toEnv))
     )
   ) {
     /* copying to same env not supported _*/
@@ -153,4 +156,8 @@ async function getExport(): Promise<JcdEntityExportDto[]> {
     }
   }
   return entityExports;
+}
+
+function checkDefaultEnv(env: string): boolean {
+  return env === default_env_id;
 }

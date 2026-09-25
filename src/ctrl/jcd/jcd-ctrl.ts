@@ -22,7 +22,7 @@ const GetJcdProjects = {
   querystring: Type.Object({
     route: Type.Optional(Type.String()),
     preview: Type.Optional(Type.Boolean()),
-    ns: Type.Optional(Type.String()),
+    env: Type.String(),
   }),
   response: {
     200: Type.Union([
@@ -45,29 +45,29 @@ async function getProjects(
   if(!hasJcdPerm) {
     return res.status(403).send({});
   }
-  let ns = req.query.ns;
+  let env = req.query.env;
   let route = req.query.route;
   try {
     if(req.query.preview) {
       if(route !== undefined) {
         let jcdProjPreview = await jcdProjService
-          .getProjPreviewByRoute(route, ns);
+          .getProjPreviewByRoute(route, env);
         if(jcdProjPreview === undefined) {
           return res.status(404).send({ message: 'preview not found' });
         }
         return res.status(200).send(jcdProjPreview);
       }
-      let projPreviews = await jcdProjService.getProjPreviews(ns);
+      let projPreviews = await jcdProjService.getProjPreviews(env);
       return res.status(200).send(projPreviews);
     }
     if(route !== undefined) {
-      let jcdProject = await jcdProjService.getProjectByRoute(route, ns);
+      let jcdProject = await jcdProjService.getProjectByRoute(route, env);
       if(jcdProject === undefined) {
         return res.status(404).send({ message: 'project not found' });
       }
       return res.status(200).send(jcdProject);
     }
-    let jcdProjects = await jcdProjService.getProjects(ns);
+    let jcdProjects = await jcdProjService.getProjects(env);
     return res.status(200).send(jcdProjects);
   } catch(e) {
     console.error(e);
@@ -146,7 +146,7 @@ async function getJcdImg(req: ReqTB<GetJcdImg>, res: RepTB<GetJcdImg>) {
 
 const GetEzdTest = {
   querystring: Type.Object({
-    ns: Type.Optional(Type.String()),
+    env: Type.Optional(Type.String()),
   }),
   response: {
     200: Type.Array(EzdTestV3.schema),
@@ -156,7 +156,7 @@ const GetEzdTest = {
 type GetEzdTest = typeof GetEzdTest;
 async function getEzdTest(req: ReqTB<GetEzdTest>, res: RepTB<GetEzdTest>) {
   let ctxUser = req.ctx.getUser();
-  let ns = req.query.ns;
+  let ns = req.query.env;
   let hasJcdTestPerm = await authzService.checkPermission(ctxUser.user_id, 'jcd.test');
   if(!hasJcdTestPerm) {
     return res.status(403).send({});
@@ -186,8 +186,8 @@ async function getJcdNamespace(
 }
 
 const GetJcdKinds = {
-  querystring: Type.Object({
-    ns: Type.Optional(Type.String()),
+  params: Type.Object({
+    envKey: Type.String(),
   }),
   response: {
     200: Type.Array(GcpKey),
@@ -199,7 +199,7 @@ async function getJcdKinds(
   req: ReqTB<GetJcdKinds>,
   res: RepTB<GetJcdKinds>,
 ): Promise<void> {
-  let ns = req.query.ns;
+  let ns = req.params.envKey;
   let ctxUser = req.ctx.getUser();
   let hasJcdPerm = await authzService.checkPermission(ctxUser.user_id, 'jcd.mgmt');
   if(!hasJcdPerm) {
@@ -211,11 +211,11 @@ async function getJcdKinds(
 
 const GetJcdKindEntities = {
   querystring: Type.Object({
-    ns: Type.Optional(Type.String()),
     /* name: either a GCP key name OR id _*/
     name: Type.Optional(Type.String()),
   }),
   params: Type.Object({
+    envKey: Type.String(),
     entityKind: Type.String(),
   }),
   response: {
@@ -232,7 +232,7 @@ async function getJcdKindEntities(
   res: RepTB<GetJcdKindEntities>
 ): Promise<void> {
   let ctxUser = req.ctx.getUser();
-  let ns = req.query.ns;
+  let ns = req.params.envKey;
   let entityKey = req.params.entityKind;
   let name = req.query.name;
   let hasJcdPerm = await authzService.checkPermission(ctxUser.user_id, 'jcd.mgmt');
@@ -248,19 +248,16 @@ async function getJcdKindEntities(
 }
 
 const PostJcdCopyEnvKind = {
-  // querystring: Type.Object({
-  //   ns: Type.Optional(Type.String()),
-  // }),
   params: Type.Object({
     entityKind: Type.String(),
+    /* When fromEnv is omitted, will be default env _*/
+    fromEnvKey: Type.String(),
+    /* When toEnv is '1', will be default env _*/
+    toEnvKey: Type.String(),
   }),
   body: Type.Object({
     /* name is either GCP entity name or id _*/
     name: Type.String(),
-    /* When fromEnv is omitted, will be default env _*/
-    fromEnv: Type.Optional(Type.String()),
-    /* When toEnv is '1', will be default env _*/
-    toEnv: Type.String(),
   }),
   response: {
     200: Type.Object({
@@ -280,11 +277,11 @@ async function postJcdCopyEnvKind(
     return res.status(403).send({ errMsg: 'Permission denied' });
   }
   let entityKind = req.params.entityKind;
-  let toEnv = req.body.toEnv;
-  let fromEnv = req.body.fromEnv;
+  let toEnv = req.params.toEnvKey;
+  let fromEnv = req.params.fromEnvKey;
   let name = req.body.name;
 
-  if(toEnv === jcdService.default_env_id) {
+  if(jcdService.checkDefaultEnv(toEnv)) {
     return res.status(403).send({ errMsg: 'Copy to [default] namespace/env not yet supported' });
   }
   try {
