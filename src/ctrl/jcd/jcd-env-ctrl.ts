@@ -113,8 +113,7 @@ async function deleteV3Proj(req: ReqTB<DeleteV3Proj>, res: RepTB<DeleteV3Proj>):
   }
   let projKey = req.params.projKey;
   let env = req.params.envKey;
-  // let img = req.query.img;
-  let img = undefined;
+  let img = req.query.img;
   try {
     await jcdProjService.deleteProjV3(projKey, { env, img });
   } catch(e) {

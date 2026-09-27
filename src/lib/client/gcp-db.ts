@@ -17,7 +17,6 @@ import type {
 import { prim } from '../../util/validate-primitives';
 import { EzdError } from '../models/error/ezd-error';
 import { logger } from '../logger/logger';
-import { ezdErrorCodes } from '../models/error/ezd-error-codes';
 import { jcdService } from '../service/jcd-service';
 
 const _datastore = new Datastore();
@@ -121,16 +120,12 @@ export const gcpDb = new class GcpDb {
       if(!gcpDb.isKey(_entity)) {
         let errMsg = 'entity is not a key';
         logger.error({entity: _entity}, errMsg);
-        throw new EzdError(errMsg, ezdErrorCodes.jcd_env_del_not_allowed);
+        throw new EzdError(errMsg, 'JCD_1.1');
       }
-      if(
-        _entity.namespace === undefined
-        || _entity.namespace.includes('default')
-        || _entity.namespace === jcdService.default_env_id
-      ) {
+      if(isDefaultEntityKey(_entity)) {
         let errMsg = 'cannot delete from default namespace (yet)';
         logger.error({ entity: _entity }, errMsg);
-        throw new EzdError(errMsg, ezdErrorCodes.jcd_env_del_not_allowed);
+        throw new EzdError(errMsg, 'JCD_1.1');
       }
     }
     if(callback !== undefined) {
@@ -168,3 +163,11 @@ export const gcpDb = new class GcpDb {
     return _datastore.KEY;
   }
 };
+
+function isDefaultEntityKey(entity: entity.Key): boolean {
+  return (
+    entity.namespace === undefined
+    || entity.namespace.includes('default')
+    || entity.namespace === jcdService.default_env_id
+  );
+}

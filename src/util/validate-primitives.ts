@@ -6,7 +6,12 @@ export const prim = {
   isPromise: isPromise,
 
   is_object,
+  arr: isArray,
 } as const;
+
+function isArray<T = unknown>(val: unknown): val is T[] {
+  return Array.isArray(val);
+}
 
 function isObject(val: unknown): val is Record<string | number | symbol, unknown> {
   return (

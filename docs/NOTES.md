@@ -13,6 +13,12 @@ Started 12/02/2025
 
 ### helpful commands
 
+Tail access logs (request end):
+
+```bash
+tail -f logs/app.log | jq 'select(.res.statusCode != null)'
+```
+
 Error logs:
 
 ```bash
@@ -30,6 +36,8 @@ Tail logs excluding image requests:
 ```bash
 tail -f logs/app.log | jq 'select((.res.url//""|startswith("/v1/jcd/img")|not)) | select((.req.url//""|startswith("/v1/jcd/img")|not))'
 ```
+
+
 ## Authentication
 
 ### Sessions
