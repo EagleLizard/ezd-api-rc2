@@ -17,6 +17,73 @@ import { JcdImage } from '../../lib/models/jcd/jcd-image';
 import { GcpKey } from '../../lib/models/gcp/gcp-kind';
 import { EzdError } from '../../lib/models/error/ezd-error';
 import { gcpDbError } from '../../lib/models/gcp/gcp-db-error';
+import { perm } from '../../lib/service/perm-service';
+import { JcdNewProjDto } from '../../lib/models/jcd/jcd-new-proj-dto';
+
+const CreateJcdProject = {
+  body: Type.Object({
+    env: Type.String(),
+    proj: JcdNewProjDto.schema,
+  }),
+  response: {
+    200:  Type.Object({}),
+    403:  Type.Object({ errMsg: Type.String() }),
+  }
+} as const satisfies FastifySchema;
+type CreateJcdProject = typeof CreateJcdProject;
+async function createJcdProject(req: ReqTB<CreateJcdProject>, res: RepTB<CreateJcdProject>) {
+  let ctxUser = req.ctx.getUser();
+  let hasJcdPerm = await perm.check(ctxUser.user_id, 'jcd.mgmt');
+  if(!hasJcdPerm) {
+    return res.status(403).send({ errMsg: 'Permission denied' });
+  }
+  let newProjDto = req.body.proj;
+  let env = req.body.env;
+  try {
+    await jcdProjService.createProj({
+      env,
+      project: newProjDto,
+    });
+  } catch(e) {
+    if(EzdError.is(e) && e.code === 'JCD_2.0') {
+      return res.status(403).send({ errMsg: e.message });
+    }
+    throw e;
+  }
+  return res.status(200).send({no: 123});
+}
+
+const DeleteJcdProject = {
+  querystring: Type.Object({
+    env: Type.String(),
+  }),
+  params: Type.Object({
+    projKey: Type.String(),
+  }),
+  response: {
+    200: Type.Object({}),
+    403: Type.Object({ errMsg: Type.String() }),
+  }
+} as const satisfies FastifySchema;
+type DeleteJcdProject = typeof DeleteJcdProject;
+async function deleteJcdProject(req: ReqTB<DeleteJcdProject>, res: RepTB<DeleteJcdProject>) {
+  let ctxUser = req.ctx.getUser();
+  let hasJcdPerm = await perm.check(ctxUser.user_id, 'jcd.mgmt');
+  if(!hasJcdPerm) {
+    return res.status(403).send({ errMsg: 'Permission denied' });
+  }
+  let projKey = req.params.projKey;
+  let env = req.query.env;
+  try {
+    await jcdProjService.deleteProjV3(projKey, { env, img: true });
+  } catch(e) {
+    if(EzdError.is(e) && e.code === 'JCD_1.1') {
+      return res.status(403).send({ errMsg: e.message });
+    }
+    throw e;
+  }
+  return res.status(200).send({});
+}
 
 const GetJcdProjects = {
   querystring: Type.Object({
@@ -76,8 +143,8 @@ async function getProjects(
 }
 
 const GetJcdProjectImg = {
-  querystring: Type.Object({
-    proj_key: Type.String(),
+  params: Type.Object({
+    projKey: Type.String(),
   }),
   response: {
     200: Type.Array(JcdImage.schema),
@@ -95,7 +162,7 @@ async function getProjectImg(
   if(!hasJcdReadPerm) {
     return res.status(403).send({});
   }
-  let projKey = req.query.proj_key;
+  let projKey = req.params.projKey;
   let projImages = await jcdProjService.getProjectImages(projKey);
   return res.status(200).send(projImages);
 }
@@ -329,6 +396,8 @@ async function getJcdExport(req: ReqTB<GetJcdExport>, res: RepTB<GetJcdExport>):
 export const jcdCtrl = new class JcdCtrl {
   jcd_img_route_prefix = jcd_img_route_prefix;
 
+  CreateJcdProject = CreateJcdProject;
+  DeleteJcdProject = DeleteJcdProject;
   GetJcdProjects = GetJcdProjects;
   GetJcdProjectImg = GetJcdProjectImg;
   GetJcdImg = GetJcdImg;
@@ -339,6 +408,8 @@ export const jcdCtrl = new class JcdCtrl {
   GetJcdKindEntities = GetJcdKindEntities;
   PostJcdCopyEnvKind = PostJcdCopyEnvKind;
 
+  createJcdProject = createJcdProject;
+  deleteJcdProject = deleteJcdProject;
   getProjects = getProjects;
   getProjectImg = getProjectImg;
   getImg = getJcdImg;

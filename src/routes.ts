@@ -83,8 +83,19 @@ export function registerAuthNRoutes(app: FastifyInstance) {
     schema: authzCtrl.GetPermissions
   }, authzCtrl.getPermissions);
 
+  app.post('/v1/jcd/project', { schema: jcdCtrl.CreateJcdProject }, jcdCtrl.createJcdProject);
   app.get('/v1/jcd/project', { schema: jcdCtrl.GetJcdProjects }, jcdCtrl.getProjects);
-  app.get('/v1/jcd/project/img', { schema: jcdCtrl.GetJcdProjectImg }, jcdCtrl.getProjectImg);
+  app.delete(
+    '/v1/jcd/project/:projKey',
+    { schema: jcdCtrl.DeleteJcdProject },
+    jcdCtrl.deleteJcdProject
+  );
+  app.get(
+    '/v1/jcd/project/:projKey/img',
+    { schema: jcdCtrl.GetJcdProjectImg },
+    jcdCtrl.getProjectImg
+  );
+
   app.get(`${jcdCtrl.jcd_img_route_prefix}/*`, { schema: jcdCtrl.GetJcdImg }, jcdCtrl.getImg);
   app.get('/v1/jcd/ezd-test', { schema: jcdCtrl.GetEzdTest }, jcdCtrl.getEzdTest);
   app.get('/v1/jcd/export', { schema: jcdCtrl.GetJcdExport }, jcdCtrl.getJcdExport);

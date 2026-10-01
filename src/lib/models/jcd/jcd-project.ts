@@ -12,13 +12,13 @@ const JcdMediaAndPressTSchema = Type.Object({
 });
 
 const JcdProjectTSchema = Type.Object({
-  projectKey: Type.String(),
-  route: Type.String(),
-  title: Type.String(),
-  venue: Type.String(),
-  producer: Type.String(),
-  month: Type.Number(),
-  year: Type.Number(),
+  projectKey: Type.String({ minLength: 3 }),
+  route: Type.String({ minLength: 3 }),
+  title: Type.String({ minLength: 3 }),
+  venue: Type.String({ minLength: 3 }),
+  producer: Type.String({ minLength: 3 }),
+  month: Type.Number({ minimum: 1, maximum: 12 }),
+  year: Type.Number({ minimum: -472 }),
   playwright: Type.Array(Type.String()),
   description: Type.Array(Type.String()),
   productionCredits: Type.Array(Type.String()),

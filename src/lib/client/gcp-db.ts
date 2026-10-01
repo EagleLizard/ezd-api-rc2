@@ -165,9 +165,5 @@ export const gcpDb = new class GcpDb {
 };
 
 function isDefaultEntityKey(entity: entity.Key): boolean {
-  return (
-    entity.namespace === undefined
-    || entity.namespace.includes('default')
-    || entity.namespace === jcdService.default_env_id
-  );
+  return jcdService.checkDefaultEnv(entity.namespace);
 }

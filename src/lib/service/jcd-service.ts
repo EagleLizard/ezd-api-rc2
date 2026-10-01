@@ -158,6 +158,10 @@ async function getExport(): Promise<JcdEntityExportDto[]> {
   return entityExports;
 }
 
-function checkDefaultEnv(env: string): boolean {
-  return env === default_env_id;
+function checkDefaultEnv(env?: string): boolean {
+  return (
+    env === default_env_id
+    || env?.includes('default')
+    || env === undefined
+  );
 }

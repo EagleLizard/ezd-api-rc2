@@ -31,6 +31,8 @@ export const ezdErrorCodes = {
 
   jcd_env_copy_not_allowed: 'JCD_1.0',
   jcd_env_del_not_allowed: 'JCD_1.1',
+
+  jcd_proj_invalid_create: 'JCD_2.0',
 } as const;
 
 export type EzdErrorCode = typeof ezdErrorCodes[keyof typeof ezdErrorCodes];

@@ -69,8 +69,7 @@ async function postV3ProjCopy(
   let toEnv = req.params.toEnvKey;
   let projKey = req.params.projKey;
 
-  if(toEnv === jcdService.default_env_id || toEnv.includes('default')) {
-    /* todo: remove this when ready to copy to default env/ns _*/
+  if(jcdService.checkDefaultEnv(toEnv)) {
     return res.status(403).send({ errMsg: 'cannot copy to default env (yet)' });
   }
   if(fromEnv === toEnv) {
@@ -117,7 +116,7 @@ async function deleteV3Proj(req: ReqTB<DeleteV3Proj>, res: RepTB<DeleteV3Proj>):
   try {
     await jcdProjService.deleteProjV3(projKey, { env, img });
   } catch(e) {
-    if(EzdError.is(e) && e.code === ezdErrorCodes.jcd_env_del_not_allowed) {
+    if(EzdError.is(e) && e.code === 'JCD_1.1') {
       return res.status(403).send({ errMsg: e.message });
     }
     throw e;

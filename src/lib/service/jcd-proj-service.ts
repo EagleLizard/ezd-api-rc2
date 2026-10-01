@@ -16,6 +16,7 @@ import { prim } from '../../util/validate-primitives';
 import { jcdService } from './jcd-service';
 import { ezdErrorCodes } from '../models/error/ezd-error-codes';
 import { JcdV3GcpEntity } from '../models/jcd/jcd-v3-gcp-entity';
+import { JcdNewProjDto } from '../models/jcd/jcd-new-proj-dto';
 
 const jcd_v3_project_key = 'JcdProjectKeyV3';
 const jcd_v3_db_project_kind = 'JcdProjectV3';
@@ -49,8 +50,11 @@ const jcdImagesCache = ezdCache.init('jcd_project_images', (val) => {
 /* JCD project service _*/
 export const jcdProjService = new class JcdProjService {
   getKeys = getKeys;
+  getKey = getKey;
   copyProjV3 = copyProjV3;
   deleteProjV3 = deleteProjV3;
+
+  createProj = createProj;
   getProjPreviews = getProjPreviews;
   getProjPreviewByRoute = getProjPreviewByRoute;
   getProject = getProject;
@@ -64,10 +68,23 @@ export const jcdProjService = new class JcdProjService {
 };
 
 async function getKeys(env: string): Promise<JcdProjKeyDto[]> {
-  let query = gcpDb.query('JcdProjectKeyV3', env);
+  let query = gcpDb.query(jcd_v3_project_key, env);
   let queryRes = await query.run();
-  let projKeyDtos = queryRes[0].map(rawVal => JcdProjKeyDto.decode(rawVal));
+  let projKeyDtos: JcdProjKeyDto[] = queryRes[0].map(JcdProjKeyDto.decode);
   return projKeyDtos;
+}
+
+async function getKey(projKey: string, env: string): Promise<JcdProjKeyDto | undefined> {
+  let query = gcpDb.query(jcd_v3_project_key, env)
+    .filter('projectKey', '=', projKey)
+    .limit(1)
+  ;
+  let queryRes = await query.run();
+  if(queryRes[0].length < 1) {
+    return undefined;
+  }
+  let projKeyDto: JcdProjKeyDto = JcdProjKeyDto.decode(queryRes[0][0]);
+  return projKeyDto;
 }
 
 /*
@@ -96,15 +113,8 @@ type JcdEnvCopyProjOpts = {
   toEnv: string;
 } & {};
 async function copyProjV3(opts: JcdEnvCopyProjOpts): Promise<JcdEnvCopyProjRes> {
-  if(
-    opts.toEnv === jcdService.default_env_id
-    || opts.toEnv.includes('default')
-    || opts.toEnv === undefined
-  ) {
-    throw new EzdError(
-      'copy to default env not permitted yet',
-      ezdErrorCodes.jcd_env_copy_not_allowed
-    );
+  if(jcdService.checkDefaultEnv(opts.toEnv)) {
+    throw new EzdError('copy to default env not permitted (yet)', 'JCD_1.0');
   }
   if(opts.fromEnv === opts.toEnv) {
     throw new EzdError('cannot copy env to self', ezdErrorCodes.jcd_env_copy_not_allowed);
@@ -185,7 +195,7 @@ type DeleteJcdProjV3Opts = {
 } & {};
 async function deleteProjV3(projKey: string, opts: DeleteJcdProjV3Opts): Promise<void> {
   let env = opts.env;
-  if(env === jcdService.default_env_id || env.includes('default') || env === undefined) {
+  if(jcdService.checkDefaultEnv(env)) {
     throw new EzdError(
       'cannot delete proj from default namespace (yet)',
       ezdErrorCodes.jcd_env_del_not_allowed
@@ -214,6 +224,87 @@ async function deleteProjV3(projKey: string, opts: DeleteJcdProjV3Opts): Promise
   ezdCache.bust();
 }
 
+type CreateProjOpts = {
+  env: string;
+  project: JcdNewProjDto;
+} & {};
+async function createProj(opts: CreateProjOpts) {
+  /*
+  1. check if project is unique
+    a. project key not exist
+    b. project entity not exist
+    c. check project route:
+      i. is unique
+      ii. is valid route string
+  2. create the new project:
+    a. project key
+    b. project entity
+    c. project order
+      i. for now, insert at the end.
+  _*/
+  let newProjDto = opts.project;
+  let env = opts.env;
+  if(jcdService.checkDefaultEnv(env)) {
+    throw new EzdError('create project in default env not permitted (yet)', 'JCD_2.0');
+  }
+  let [ existingProjKey, existingProj, jcdProjOrders ] = await Promise.all([
+    jcdProjService.getKey(newProjDto.projectKey, env),
+    jcdProjService.getProject(newProjDto.projectKey, env),
+    jcdProjService.getProjectOrders(env),
+  ]);
+  if(existingProjKey !== undefined) {
+    throw new EzdError(`JCD Project key '${newProjDto.projectKey}' already exists`, 'JCD_2.0');
+  }
+  if(existingProj !== undefined) {
+    throw new EzdError(`JCD Project with key '${newProjDto.projectKey}' already exists`, 'JCD_2.0');
+  }
+  existingProj = await jcdProjService.getProjectByRoute(newProjDto.route, env);
+  if(existingProj !== undefined) {
+    throw new EzdError(`JCD Project with route '${newProjDto.route}' already exists`, 'JCD_2.0');
+  }
+  /* TODO:xxx: validate route string is valid with regexp _*/
+  let newProjKeyData: JcdProjKeyDto = {
+    projectKey: newProjDto.projectKey,
+    active: true,
+  };
+  let newProjKeyEntity: JcdV3GcpEntity = {
+    key: gcpDb.key({
+      namespace: env,
+      path: [ jcd_v3_project_key, newProjDto.projectKey ],
+    }),
+    data: newProjKeyData,
+  };
+  let newProjData: JcdProject = Object.assign({}, {
+    playwright: [],
+    description: [],
+    productionCredits: [],
+    mediaAndPress: [],
+  }, newProjDto);
+  let newProjEntity: JcdV3GcpEntity = {
+    key: gcpDb.key({
+      namespace: env,
+      path: [ jcd_v3_db_project_kind, newProjData.projectKey ]
+    }),
+    data: newProjData,
+  };
+  let newProjOrderIdx: number = jcdProjOrders.reduce((acc, curr) => {
+    return Math.max(acc, curr.orderIdx);
+  }, 0) + 1;
+  let newProjOrderData: JcdProjectOrder = {
+    projectKey: newProjDto.projectKey,
+    orderIdx: newProjOrderIdx,
+  };
+  let newProjOrderEntity: JcdV3GcpEntity = {
+    key: gcpDb.key({
+      namespace: env,
+      path: [ jcd_v3_db_project_order, newProjOrderData.projectKey ]
+    }),
+    data: newProjOrderData,
+  };
+  await gcpDb.insert([ newProjKeyEntity, newProjEntity, newProjOrderEntity ]);
+  ezdCache.bust();
+}
+
 async function getProjPreviews(env: string): Promise<JcdProjPreview[]> {
   let cacheKey = `${env ? `-${env}` : ''}`;
   let cached = jcdProjectPreviewsCache.get(cacheKey);
@@ -233,12 +324,11 @@ async function getProjPreviews(env: string): Promise<JcdProjPreview[]> {
     let foundJcdTitleImage = jcdTitleImages.find(jcdImage => {
       return jcdImage.projectKey === jcdProj.projectKey;
     });
-    assert(foundJcdTitleImage !== undefined);
     let projPreview: JcdProjPreview = {
       projectKey: jcdProj.projectKey,
       route: jcdProj.route,
       title: jcdProj.title,
-      titleUri: foundJcdTitleImage.bucketFile,
+      titleUri: foundJcdTitleImage?.bucketFile ?? 'bigbird4.jpg',
       orderIndex: foundJcdOrder.orderIdx,
     };
     return projPreview;
@@ -261,29 +351,28 @@ async function getProjPreviewByRoute(
     projectKey: jcdProj.projectKey,
     route: jcdProj.route,
     title: jcdProj.title,
-    titleUri: jcdImage.bucketFile,
+    titleUri: jcdImage?.bucketFile ?? 'bigbird4.jpg',
     // orderIndex: projOrder?.orderIdx ?? -1,
     orderIndex: -1,
   };
   return projPreview;
 }
 
-async function getProjTitleImage(projectKey: string, ns?: string): Promise<JcdImage> {
+async function getProjTitleImage(projectKey: string, ns: string): Promise<JcdImage | undefined> {
   let cacheKey = `jcd_title_image_${projectKey}${ns ? `-${ns}` : ''}`;
   let cached = jcdImagesCache.get(cacheKey)?.[0];
   if(cached !== undefined) {
     return cached;
   }
-  let query = ns === undefined
-    ? gcpDb.createQuery(jcd_v3_db_image)
-    : gcpDb.createQuery(ns, jcd_v3_db_image)
-  ;
-  let jcdImgQuery = query
+  let jcdImgQuery = gcpDb.query(jcd_v3_db_image, ns)
     .filter('imageType', '=', 'TITLE')
     .filter('projectKey', '=', projectKey)
     .limit(1)
   ;
   let imageQueryRes = (await jcdImgQuery.run())[0];
+  if(imageQueryRes.length < 1) {
+    return undefined;
+  }
   let jcdImage = JcdImage.decode(imageQueryRes[0]);
   jcdImagesCache.set(cacheKey, [ jcdImage ]);
   return jcdImage;
@@ -351,13 +440,13 @@ async function getProjectImages(
   return jcdImages;
 }
 
-async function getProjectOrders(env?: string): Promise<JcdProjectOrder[]> {
+async function getProjectOrders(env: string): Promise<JcdProjectOrder[]> {
   let cacheKey = `${env ? `-${env}` : ''}`;
   let cached = jcdProjectOrdersCache.get(cacheKey);
   if(cached !== undefined) {
     return cached;
   }
-  let query = gcpDb.createQuery(jcd_v3_db_project_order);
+  let query = gcpDb.query(jcd_v3_db_project_order, env);
   let projectOrdersRes = await query.run();
   let jcdProjectOrders = projectOrdersRes[0].map(JcdProjectOrder.decode);
   jcdProjectOrdersCache.set(cacheKey, jcdProjectOrders);
