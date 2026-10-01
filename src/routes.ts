@@ -100,17 +100,17 @@ export function registerAuthNRoutes(app: FastifyInstance) {
   app.get('/v1/jcd/ezd-test', { schema: jcdCtrl.GetEzdTest }, jcdCtrl.getEzdTest);
   app.get('/v1/jcd/export', { schema: jcdCtrl.GetJcdExport }, jcdCtrl.getJcdExport);
 
-  app.get('/v1/jcd/env', { schema: jcdCtrl.GetJcdNamespace}, jcdCtrl.getJcdNamespace);
-  app.get('/v1/jcd/env/:envKey/kind', { schema: jcdCtrl.GetJcdKinds }, jcdCtrl.getJcdKinds);
+  app.get('/v1/jcd/env', { schema: jcdEnvCtrl.GetJcdNamespace}, jcdEnvCtrl.getJcdNamespace);
+  app.get('/v1/jcd/env/:envKey/kind', { schema: jcdEnvCtrl.GetJcdKinds }, jcdEnvCtrl.getJcdKinds);
   app.get(
     '/v1/jcd/env/:envKey/kind/:entityKind',
-    { schema: jcdCtrl.GetJcdKindEntities },
-    jcdCtrl.getJcdKindEntities,
+    { schema: jcdEnvCtrl.GetJcdKindEntities },
+    jcdEnvCtrl.getJcdKindEntities,
   );
   app.post(
     '/v1/jcd/env/:fromEnvKey/kind/:entityKind/copy/:toEnvKey',
-    { schema: jcdCtrl.PostJcdCopyEnvKind },
-    jcdCtrl.postJcdCopyEnvKind
+    { schema: jcdEnvCtrl.PostJcdCopyEnvKind },
+    jcdEnvCtrl.postJcdCopyEnvKind
   );
 
   app.get('/v1/jcd/env/:envKey/proj', {schema: jcdEnvCtrl.GetV3Proj}, jcdEnvCtrl.getV3Proj);

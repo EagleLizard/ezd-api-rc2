@@ -9,11 +9,154 @@ import { jcdProjService } from '../../lib/service/jcd-proj-service';
 import { jcdService } from '../../lib/service/jcd-service';
 import { GcpKeyDto } from '../../lib/models/gcp/gcp-key-dto';
 import { EzdError } from '../../lib/models/error/ezd-error';
-import { ezdErrorCodes } from '../../lib/models/error/ezd-error-codes';
+import { GcpNamespace } from '../../lib/models/gcp/gcp-namespace';
+import { GcpKey } from '../../lib/models/gcp/gcp-kind';
+import { gcpDbError } from '../../lib/models/gcp/gcp-db-error';
 
 /*
 Env and Namespace are synonymous
 _*/
+
+const GetJcdNamespace = {
+  response: {
+    200: Type.Array(GcpNamespace.schema),
+    403: Type.Object({ errMsg: Type.String() }),
+  },
+} as const satisfies FastifySchema;
+type GetJcdNamespace = typeof GetJcdNamespace;
+async function getJcdNamespace(
+  req: ReqTB<GetJcdNamespace>,
+  res: RepTB<GetJcdNamespace>,
+): Promise<void> {
+  let ctxUser = req.ctx.getUser();
+  let hasJcdPerm = await authzService.checkPermission(ctxUser.user_id, 'jcd.mgmt');
+  if(!hasJcdPerm) {
+    return res.status(403).send({ errMsg: 'Permission denied '});
+  }
+  let jcdNss = await jcdService.getNamespaces();
+  return res.status(200).send(jcdNss);
+}
+
+const GetJcdKinds = {
+  params: Type.Object({
+    envKey: Type.String(),
+  }),
+  response: {
+    200: Type.Array(GcpKey.schema),
+    403: Type.Object({ errMsg: Type.String() }),
+  },
+} as const satisfies FastifySchema;
+type GetJcdKinds = typeof GetJcdKinds;
+async function getJcdKinds(
+  req: ReqTB<GetJcdKinds>,
+  res: RepTB<GetJcdKinds>,
+): Promise<void> {
+  let ns = req.params.envKey;
+  let ctxUser = req.ctx.getUser();
+  let hasJcdPerm = await authzService.checkPermission(ctxUser.user_id, 'jcd.mgmt');
+  if(!hasJcdPerm) {
+    return res.status(403).send({ errMsg: 'Permission denied' });
+  }
+  let jcdKinds = await jcdService.getEntityKinds(ns);
+  return res.status(200).send(jcdKinds);
+}
+
+const GetJcdKindEntities = {
+  querystring: Type.Object({
+    /* name: either a GCP key name OR id _*/
+    name: Type.Optional(Type.String()),
+  }),
+  params: Type.Object({
+    envKey: Type.String(),
+    entityKind: Type.String(),
+  }),
+  response: {
+    200: Type.Union([
+      Type.Array(GcpKey.schema),
+      Type.Any(),
+    ]),
+    403: Type.Object({ errMsg: Type.String() }),
+  }
+} as const satisfies FastifySchema;
+type GetJcdKindEntities = typeof GetJcdKindEntities;
+async function getJcdKindEntities(
+  req: ReqTB<GetJcdKindEntities>,
+  res: RepTB<GetJcdKindEntities>
+): Promise<void> {
+  let ctxUser = req.ctx.getUser();
+  let ns = req.params.envKey;
+  let entityKey = req.params.entityKind;
+  let name = req.query.name;
+  let hasJcdPerm = await authzService.checkPermission(ctxUser.user_id, 'jcd.mgmt');
+  if(name !== undefined && name.length > 0) {
+    let entity = await jcdService.getKindEntityByName(entityKey, name, ns);
+    return res.status(200).send(entity);
+  }
+  if(!hasJcdPerm) {
+    return res.status(403).send({ errMsg: 'Permission denied' });
+  }
+  let kindEntities = await jcdService.getEntitiesByKind(entityKey, ns);
+  return res.status(200).send(kindEntities);
+}
+
+const PostJcdCopyEnvKind = {
+  params: Type.Object({
+    entityKind: Type.String(),
+    /* When fromEnv is omitted, will be default env _*/
+    fromEnvKey: Type.String(),
+    /* When toEnv is '1', will be default env _*/
+    toEnvKey: Type.String(),
+  }),
+  body: Type.Object({
+    /* name is either GCP entity name or id _*/
+    name: Type.String(),
+  }),
+  response: {
+    200: Type.Object({
+      outcome: Type.Object({ msg: Type.String() }),
+    }),
+    403: Type.Object({ errMsg: Type.String() }),
+  }
+} as const satisfies FastifySchema;
+type PostJcdCopyEnvKind = typeof PostJcdCopyEnvKind;
+async function postJcdCopyEnvKind(
+  req: ReqTB<PostJcdCopyEnvKind>,
+  res: RepTB<PostJcdCopyEnvKind>
+): Promise<void> {
+  let ctxUser = req.ctx.getUser();
+  let hasCopyPerm = await authzService.checkPermission(ctxUser.user_id, 'jcd.mgmt');
+  if(!hasCopyPerm) {
+    return res.status(403).send({ errMsg: 'Permission denied' });
+  }
+  let entityKind = req.params.entityKind;
+  let toEnv = req.params.toEnvKey;
+  let fromEnv = req.params.fromEnvKey;
+  let name = req.body.name;
+
+  if(jcdService.checkDefaultEnv(toEnv)) {
+    return res.status(403).send({ errMsg: 'Copy to [default] namespace/env not yet supported' });
+  }
+  try {
+    await jcdService.copyEnvKindEntity({
+      fromEnv: fromEnv,
+      toEnv: toEnv,
+      entityKind: entityKind,
+      name: name,
+    });
+  } catch(e) {
+    if(!gcpDbError.isGcpDbError(e)) {
+      throw e;
+    }
+    if(e.code === 6) {
+      req.log.error(e);
+      return res.status(403).send({
+        errMsg: `error: ${e.details}`,
+      });
+    }
+    throw e;
+  }
+  return res.status(200).send({ outcome: { msg: 'success' } });
+}
 
 const GetV3Proj = {
   params: Type.Object({
@@ -125,6 +268,15 @@ async function deleteV3Proj(req: ReqTB<DeleteV3Proj>, res: RepTB<DeleteV3Proj>):
 }
 
 export const jcdEnvCtrl = {
+  GetJcdNamespace,
+  getJcdNamespace,
+  GetJcdKinds,
+  getJcdKinds,
+  GetJcdKindEntities,
+  getJcdKindEntities,
+  PostJcdCopyEnvKind,
+  postJcdCopyEnvKind,
+
   GetV3Proj,
   getV3Proj,
   PostV3ProjCopy,
