@@ -3,6 +3,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyCookie from '@fastify/cookie';
 import fastifySession from '@fastify/session';
+import fastifyMultipart from '@fastify/multipart';
 import WebSocket, { WebSocketServer } from 'ws';
 
 import { logger } from './lib/logger/logger';
@@ -54,6 +55,12 @@ export async function initServer() {
       httpOnly: true,
       // sameSite: 'none',
     },
+  });
+  app.register(fastifyMultipart, {
+    // attachFieldsToBody: true,
+    limits: {
+      fileSize: 1048576 * 25 // 25 MiB
+    }
   });
 
   /*

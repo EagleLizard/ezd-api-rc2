@@ -16,6 +16,7 @@ import { JcdImage } from '../../lib/models/jcd/jcd-image';
 import { EzdError } from '../../lib/models/error/ezd-error';
 import { perm } from '../../lib/service/perm-service';
 import { JcdNewProjDto } from '../../lib/models/jcd/jcd-new-proj-dto';
+import { hashUtil } from '../../lib/lib/hash-util';
 
 const CreateJcdProject = {
   body: Type.Object({
@@ -164,6 +165,38 @@ async function getProjectImg(
   return res.status(200).send(projImages);
 }
 
+const PostProjectImg = {
+  response: {
+    200: Type.Object({}),
+    403: Type.Object({ errMsg: Type.String() }),
+  }
+} as const satisfies FastifySchema;
+type PostProjectImg = typeof PostProjectImg;
+async function postProjectImg(req: ReqTB<PostProjectImg>, res: RepTB<PostProjectImg>) {
+  let ctxUser = req.ctx.getUser();
+  let hasPerm = await perm.check(ctxUser.user_id, 'jcd.mgmt');
+  if(!hasPerm) {
+    return res.status(403).send({ errMsg: 'Permission denied' });
+  }
+  let file = await req.file();
+  if(file !== undefined) {
+    let hasher = hashUtil.getHasher();
+    file.file.on('data', (chunk) => {
+      if(!Buffer.isBuffer(chunk)) {
+        throw new EzdError('unexpected non-buffer stream data');
+      }
+      hasher.update(chunk);
+    });
+    file.file.once('close', () => {
+      let hash = hasher.digest();
+      console.log(hash);
+    });
+    console.log(file.file);
+    console.log(file.fields);
+  }
+  return res.status(200).send({});
+}
+
 const jcd_img_route_prefix = '/v1/jcd/img' as const;
 const GetJcdImg = {
   response: {
@@ -256,6 +289,7 @@ export const jcdCtrl = new class JcdCtrl {
   DeleteJcdProject = DeleteJcdProject;
   GetJcdProjects = GetJcdProjects;
   GetJcdProjectImg = GetJcdProjectImg;
+  PostProjectImg = PostProjectImg;
   GetJcdImg = GetJcdImg;
   GetEzdTest = GetEzdTest;
   GetJcdExport = GetJcdExport;
@@ -264,6 +298,7 @@ export const jcdCtrl = new class JcdCtrl {
   deleteJcdProject = deleteJcdProject;
   getProjects = getProjects;
   getProjectImg = getProjectImg;
+  postProjectImg = postProjectImg;
   getImg = getJcdImg;
   getEzdTest = getEzdTest;
   getJcdExport = getJcdExport;
