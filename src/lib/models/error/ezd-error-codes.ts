@@ -33,6 +33,8 @@ export const ezdErrorCodes = {
   jcd_env_del_not_allowed: 'JCD_1.1',
 
   jcd_proj_invalid_create: 'JCD_2.0',
+  jcd_proj_img_unexpected_file_data: 'JCD_2.1',
+  jcd_proj_not_found: 'JCD_2.2',
 } as const;
 
 export type EzdErrorCode = typeof ezdErrorCodes[keyof typeof ezdErrorCodes];

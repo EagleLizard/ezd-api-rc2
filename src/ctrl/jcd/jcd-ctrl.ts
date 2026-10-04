@@ -17,6 +17,7 @@ import { EzdError } from '../../lib/models/error/ezd-error';
 import { perm } from '../../lib/service/perm-service';
 import { JcdNewProjDto } from '../../lib/models/jcd/jcd-new-proj-dto';
 import { hashUtil } from '../../lib/lib/hash-util';
+import { jcdFs } from '../../lib/service/jcd-file-service';
 
 const CreateJcdProject = {
   body: Type.Object({
@@ -166,6 +167,13 @@ async function getProjectImg(
 }
 
 const PostProjectImg = {
+  params: Type.Object({
+    projKey: Type.String(),
+  }),
+  querystring: Type.Object({
+    env: Type.String(),
+    type: Type.Union([ Type.Literal('TITLE'), Type.Literal('GALLERY') ]),
+  }),
   response: {
     200: Type.Object({}),
     403: Type.Object({ errMsg: Type.String() }),
@@ -178,21 +186,13 @@ async function postProjectImg(req: ReqTB<PostProjectImg>, res: RepTB<PostProject
   if(!hasPerm) {
     return res.status(403).send({ errMsg: 'Permission denied' });
   }
+  /* todo:xxx: use req.parts() to support multiple files per request _*/
   let file = await req.file();
+  let projKey = req.params.projKey;
+  let env = req.query.env;
+  let imageType = req.query.type;
   if(file !== undefined) {
-    let hasher = hashUtil.getHasher();
-    file.file.on('data', (chunk) => {
-      if(!Buffer.isBuffer(chunk)) {
-        throw new EzdError('unexpected non-buffer stream data');
-      }
-      hasher.update(chunk);
-    });
-    file.file.once('close', () => {
-      let hash = hasher.digest();
-      console.log(hash);
-    });
-    console.log(file.file);
-    console.log(file.fields);
+    let imgUploadRes = await jcdFs.uploadProjImg(file, imageType, projKey, env);
   }
   return res.status(200).send({});
 }

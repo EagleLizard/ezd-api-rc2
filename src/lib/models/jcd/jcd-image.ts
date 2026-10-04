@@ -3,6 +3,7 @@ import { Type, Static } from 'typebox';
 import { tbUtil } from '../../../util/tb-util';
 
 const JcdImageTSchema = Type.Object({
+  active: Type.Boolean(),
   id: Type.String(),
   projectKey: Type.String(),
   bucketFile: Type.String(),
@@ -10,7 +11,7 @@ const JcdImageTSchema = Type.Object({
     unsure if used
     TODO: check to deprecate
   _*/
-  orderIdx: Type.String(),
+  orderIdx: Type.Number(),
   imageType: Type.String(),
 });
 export type JcdImage = Static<typeof JcdImageTSchema>

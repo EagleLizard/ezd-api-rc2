@@ -17,6 +17,7 @@ import { jcdService } from './jcd-service';
 import { ezdErrorCodes } from '../models/error/ezd-error-codes';
 import { JcdV3GcpEntity } from '../models/jcd/jcd-v3-gcp-entity';
 import { JcdNewProjDto } from '../models/jcd/jcd-new-proj-dto';
+import { PropertyFilter } from '@google-cloud/datastore';
 
 const jcd_v3_project_key = 'JcdProjectKeyV3';
 const jcd_v3_db_project_kind = 'JcdProjectV3';
@@ -63,6 +64,8 @@ export const jcdProjService = new class JcdProjService {
   getProjectOrders = getProjectOrders;
   getProjectImages = getProjectImages;
   getTitleImages = getTitleImages;
+  createImg = createImg;
+  getImgByPath = getImgByPath;
 
   getEzdTest = getEzdTest;
 };
@@ -385,7 +388,7 @@ async function getProject(projKey: string, env?: string): Promise<JcdProject | u
     return proj;
   }
   let queryRes = await gcpDb.query(jcd_v3_db_project_kind, env)
-    .filter('projectKey', '=', projKey)
+    .filter(new PropertyFilter('projectKey', '=', projKey))
     .limit(1)
     .run()
   ;
@@ -438,6 +441,45 @@ async function getProjectImages(
   let queryRes = await query.run();
   let jcdImages = queryRes[0].map(JcdImage.decode);
   return jcdImages;
+}
+
+type CreateJcdProjImgOpts = {
+  active?: boolean;
+  imageType: 'TITLE' | 'GALLERY';
+} & {};
+async function createImg(
+  bucketFile: string,
+  projKey: string,
+  env: string,
+  opts: CreateJcdProjImgOpts
+) {
+  let key = gcpDb.key({
+    namespace: env,
+    path: [ jcd_v3_db_image, bucketFile ],
+  });
+  let data: JcdImage = {
+    active: opts.active ?? true,
+    bucketFile: bucketFile,
+    id: bucketFile,
+    imageType: opts.imageType,
+    projectKey: projKey,
+    orderIdx: -1,
+  };
+  let imgEntity: JcdV3GcpEntity = { key, data };
+  await gcpDb.insert(imgEntity);
+  ezdCache.bust();
+}
+async function getImgByPath(bucketPath: string, env: string): Promise<JcdImage | undefined> {
+  let query = gcpDb.query(jcd_v3_db_image, env)
+    .filter(new PropertyFilter('bucketFile', '=', bucketPath))
+    .limit(1)
+  ;
+  let queryRes = await query.run();
+  if(queryRes[0].length < 1) {
+    return undefined;
+  }
+  let jcdImg = JcdImage.decode(queryRes[0][0]);
+  return jcdImg;
 }
 
 async function getProjectOrders(env: string): Promise<JcdProjectOrder[]> {
