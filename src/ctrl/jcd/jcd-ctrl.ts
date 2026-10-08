@@ -145,6 +145,9 @@ const GetJcdProjectImg = {
   params: Type.Object({
     projKey: Type.String(),
   }),
+  querystring: Type.Object({
+    env: Type.String(),
+  }),
   response: {
     200: Type.Array(JcdImage.schema),
     403: Type.Optional(Type.Object({})),
@@ -162,7 +165,7 @@ async function getProjectImg(
     return res.status(403).send({});
   }
   let projKey = req.params.projKey;
-  let projImages = await jcdProjService.getProjectImages(projKey);
+  let projImages = await jcdProjService.getProjectImages(projKey, req.query.env);
   return res.status(200).send(projImages);
 }
 

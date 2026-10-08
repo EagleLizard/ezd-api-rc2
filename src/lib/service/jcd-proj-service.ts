@@ -44,7 +44,7 @@ const jcdProjectOrdersCache: EzdCacheItem<JcdProjectOrder[]> = ezdCache
   });
 const jcdImagesCache = ezdCache.init('jcd_project_images', (val) => {
   assert(Array.isArray(val));
-  let jcdImages: JcdImage[] = val.map(rawVal => JcdImage.decode(rawVal));
+  let jcdImages: JcdImage[] = val.map(rawVal => JcdImage.parse(rawVal));
   return jcdImages;
 });
 
@@ -376,7 +376,7 @@ async function getProjTitleImage(projectKey: string, ns: string): Promise<JcdIma
   if(imageQueryRes.length < 1) {
     return undefined;
   }
-  let jcdImage = JcdImage.decode(imageQueryRes[0]);
+  let jcdImage = JcdImage.parse(imageQueryRes[0]);
   jcdImagesCache.set(cacheKey, [ jcdImage ]);
   return jcdImage;
 }
@@ -431,15 +431,16 @@ async function getProjectByRoute(routeKey: string, ns: string): Promise<JcdProje
 
 async function getProjectImages(
   projectKey: string,
+  env: string,
   opts: {active?: boolean} = {}
 ): Promise<JcdImage[]> {
-  let query = gcpDb.createQuery(jcd_v3_db_image)
+  let query = gcpDb.query(jcd_v3_db_image, env)
     .filter('projectKey', '=', projectKey);
   if(opts.active === true) {
     query = query.filter('active', true);
   }
   let queryRes = await query.run();
-  let jcdImages = queryRes[0].map(JcdImage.decode);
+  let jcdImages = queryRes[0].map(JcdImage.parse);
   return jcdImages;
 }
 
@@ -452,7 +453,60 @@ async function createImg(
   projKey: string,
   env: string,
   opts: CreateJcdProjImgOpts
-) {
+): Promise<JcdImage> {
+  /*
+  When a new GALLERY image is uploaded:
+    calculate new orderIdx:
+      - get existing images
+      - if new orderIdx specified:
+        > if in middle, update any order indices after
+      - if orderIdx not specified, insert at end:
+        > find max orderIdx in existing image list
+        > set new orderIdx to max orderIdx + 1 (or some big number if we want gaps for future inserts)
+
+  When a TITLE image is uploaded and one already exists:
+    insert new title image entity
+    then, update existing tile image:
+      - change type to GALLERY
+      - calculate new orderIdx
+  _*/
+  let jcdV3Images = await jcdProjService.getProjectImages(projKey, env);
+  let nextOrderIdx = getNextImgOrderIdx(jcdV3Images);
+  let existingImage = jcdV3Images.find(jcdV3Img => jcdV3Img.bucketFile === bucketFile);
+  if(existingImage !== undefined) {
+    if(opts.imageType === existingImage.imageType) {
+      /*
+      do nothing.
+      TODO:xxx: For gallery, update orderIdx if different?
+      _*/
+      return existingImage;
+    }
+    let nextImageData = JcdImage.clone(existingImage);
+    switch(existingImage.imageType) {
+      case 'TITLE':
+        /*
+          demote title image, calculate new orderIdx
+        _*/
+        nextImageData.imageType = 'GALLERY';
+        nextImageData.orderIdx = nextOrderIdx;
+        break;
+      case 'GALLERY':
+        nextImageData.imageType = 'TITLE';
+        nextImageData.orderIdx = -1;
+        break;
+      default:
+        /* should be unreachable */
+        throw new EzdError(`Invalid imageType: ${existingImage.imageType}`, 'JCD_2.3');
+    }
+    let imgKey = JcdV3GcpEntity.extractKey(nextImageData);
+    let imageEntity: JcdV3GcpEntity = {
+      key: imgKey,
+      data: nextImageData,
+    };
+    await gcpDb.update(imageEntity);
+    return nextImageData;
+  }
+  let orderIdx = (opts.imageType === 'TITLE') ? -1 : nextOrderIdx;
   let key = gcpDb.key({
     namespace: env,
     path: [ jcd_v3_db_image, bucketFile ],
@@ -463,12 +517,26 @@ async function createImg(
     id: bucketFile,
     imageType: opts.imageType,
     projectKey: projKey,
-    orderIdx: -1,
+    orderIdx: orderIdx,
   };
   let imgEntity: JcdV3GcpEntity = { key, data };
   await gcpDb.insert(imgEntity);
   ezdCache.bust();
+  return data;
 }
+function getNextImgOrderIdx(jcdV3Images: JcdImage[]): number {
+  /* only consider gallery images */
+  jcdV3Images = jcdV3Images.filter(img => img.imageType === 'GALLERY');
+  if(jcdV3Images.length < 1) {
+    return 0;
+  }
+  let nextOrderIdx = jcdV3Images.reduce((acc, curr) => (Math.max(acc, curr.orderIdx)), -Infinity);
+  if(nextOrderIdx < 0) {
+    return 0;
+  }
+  return nextOrderIdx + 1;
+}
+
 async function getImgByPath(bucketPath: string, env: string): Promise<JcdImage | undefined> {
   let query = gcpDb.query(jcd_v3_db_image, env)
     .filter(new PropertyFilter('bucketFile', '=', bucketPath))
@@ -478,7 +546,7 @@ async function getImgByPath(bucketPath: string, env: string): Promise<JcdImage |
   if(queryRes[0].length < 1) {
     return undefined;
   }
-  let jcdImg = JcdImage.decode(queryRes[0][0]);
+  let jcdImg = JcdImage.parse(queryRes[0][0]);
   return jcdImg;
 }
 
@@ -503,7 +571,7 @@ async function getTitleImages(env: string): Promise<JcdImage[]> {
   }
   let query = gcpDb.createQuery(jcd_v3_db_image).filter('imageType', '=', 'TITLE');
   let imageQueryRes = await query.run();
-  let jcdImages = imageQueryRes[0].map(JcdImage.decode);
+  let jcdImages = imageQueryRes[0].map(JcdImage.parse);
   jcdImagesCache.set(cacheKey, jcdImages);
   return jcdImages;
 }

@@ -37,6 +37,10 @@ Tail logs excluding image requests:
 tail -f logs/app.log | jq 'select((.res.url//""|startswith("/v1/jcd/img")|not)) | select((.req.url//""|startswith("/v1/jcd/img")|not))'
 ```
 
+```bash
+tail -f logs/app.log | jq 'select((.res.url//""|startswith("/v1/jcd/img")|not)) | select((.req.url//""|startswith("/v1/jcd/img")|not)) | select(.msg == "incoming request" | not)'
+```
+
 
 ## Authentication
 

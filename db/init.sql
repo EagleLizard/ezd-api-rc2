@@ -110,4 +110,15 @@ create table password (
   modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- AuthN
+-- Jobs
+
+create table job (
+  job_id SERIAL PRIMARY KEY,
+  job_type TEXT NOT NULL,
+  data TEXT,
+  status TEXT DEFAULT 'pending',
+
+  run_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

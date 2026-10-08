@@ -5,6 +5,7 @@ import {
   PathType,
   Query,
   Transaction,
+  UpdateResponse,
 } from '@google-cloud/datastore';
 import type { Entities, entity } from '@google-cloud/datastore/build/src/entity';
 import type {
@@ -18,6 +19,7 @@ import { prim } from '../../util/validate-primitives';
 import { EzdError } from '../models/error/ezd-error';
 import { logger } from '../logger/logger';
 import { jcdService } from '../service/jcd-service';
+import { JcdV3GcpEntity } from '../models/jcd/jcd-v3-gcp-entity';
 
 const _datastore = new Datastore();
 
@@ -101,6 +103,19 @@ export const gcpDb = new class GcpDb {
       return _datastore.insert(entities, callback);
     }
     return _datastore.insert(entities);
+  }
+
+  update(entities: JcdV3GcpEntity | JcdV3GcpEntity[]): Promise<UpdateResponse> {
+    let _entities = Array.isArray(entities) ? entities : [ entities ];
+    for(let i = 0; i < _entities.length; i++) {
+      let _entity = _entities[i];
+      if(isDefaultEntityKey(_entity.key)) {
+        let errMsg = 'cannot update entities in default namespace (yet)';
+        logger.error({ entity: _entity }, errMsg);
+        throw new EzdError(errMsg, 'JCD_1.2');
+      }
+    }
+    return _datastore.update(entities);
   }
 
   delete(entities: Entities): Promise<DeleteResponse>

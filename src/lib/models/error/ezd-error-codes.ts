@@ -9,6 +9,7 @@ export const ezdErrorCodes = {
   schema_decode: 'EZD_1.1',
   ezd_cache_key_dupe: 'EZD_1.2',
   ezd_cache_sep: 'EZD_1.3',
+  schema_parse: 'EZD_1.4',
 
   NOT_FOUND: 'EZD_2.0',
   user_missing_from_ctx_in_authn_route: 'EZD_2.1',
@@ -31,10 +32,12 @@ export const ezdErrorCodes = {
 
   jcd_env_copy_not_allowed: 'JCD_1.0',
   jcd_env_del_not_allowed: 'JCD_1.1',
+  jcd_update_not_allowed: 'JCD_1.2',
 
   jcd_proj_invalid_create: 'JCD_2.0',
   jcd_proj_img_unexpected_file_data: 'JCD_2.1',
   jcd_proj_not_found: 'JCD_2.2',
+  jcd_img_invalid_type: 'JCD_2.3',
 } as const;
 
 export type EzdErrorCode = typeof ezdErrorCodes[keyof typeof ezdErrorCodes];

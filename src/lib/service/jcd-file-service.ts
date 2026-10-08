@@ -1,4 +1,5 @@
 
+import streamp from 'node:stream/promises';
 import type { MultipartFile } from '@fastify/multipart';
 import { Storage } from '@google-cloud/storage';
 
@@ -6,6 +7,8 @@ import { EzdError } from '../models/error/ezd-error';
 import { hashUtil } from '../lib/hash-util';
 import { jcdProjService } from './jcd-proj-service';
 import { jcdCfg } from '../config/jcd-config';
+import { jobService } from './job-service';
+import { JcdImgProcJobData } from '../models/job/jcd-img-proc-job';
 
 export const jcdFs = {
   uploadProjImg: uploadProjImg,
@@ -28,69 +31,48 @@ async function uploadProjImg(
       > overwrite?
       > error?
   - get hash while streaming
-
-  When a new GALLERY image is uploaded:
-    calculate new orderIdx:
-      - get existing images
-      - if new orderIdx specified:
-        > if in middle, update any order indices after
-      - if orderIdx not specified, insert at end:
-        > find max orderIdx in existing image list
-        > set new orderIdx to max orderIdx + 1 (or some big number if we want gaps for future inserts)
-
-  When a TITLE image is uploaded and one already exists:
-    insert new title image entity
-    then, update existing tile image:
-      - change type to GALLERY
-      - calculate new orderIdx
   _*/
   let jcdProj = await jcdProjService.getProject(projKey, env);
   if(jcdProj === undefined) {
     throw new EzdError(`Project ${projKey} not found`, 'JCD_2.2');
   }
   let imgBucketFile = [ jcdProj.route, file.filename ].join('/');
-  let jcdV3Img = await jcdProjService.getImgByPath(imgBucketFile, env);
-  if(jcdV3Img === undefined) {
-    await jcdProjService.createImg(imgBucketFile, projKey, env, {
-      imageType,
-    });
-  }
+  await jcdProjService.createImg(imgBucketFile, projKey, env, {
+    imageType,
+  });
   let bucketFilePath = [
     jcdCfg.img_v4.src_folder,
     imgBucketFile,
   ].join('/');
-  console.log(bucketFilePath);
   let gcsImUploadRes = await uploadGcsImg(bucketFilePath, file);
+  let procImgJobData: JcdImgProcJobData = {
+    srcPath: bucketFilePath,
+  };
+  let jobDataStr = JSON.stringify(procImgJobData);
+  let jobDto = await jobService.enqueue('jcd_img_proc', jobDataStr);
 }
 
 type GcsImgUploadRes = {
   hash: string;
 } & {};
-async function uploadGcsImg(gcsFilePath: string, file: MultipartFile): Promise<GcsImgUploadRes> {
-  let deferred = Promise.withResolvers<void>();
+async function uploadGcsImg(
+  gcsFilePath: string,
+  file: MultipartFile
+): Promise<GcsImgUploadRes | void> {
   let hasher = hashUtil.getHasher();
   let storage = new Storage;
   let bucket = storage.bucket(jcdCfg.img_v4.bucket);
   let gcsFile = bucket.file(gcsFilePath);
-
   /*
   TODO:xxx: throw error if file exists
   _*/
-  let gcsWs = file.file.pipe(gcsFile.createWriteStream());
-
   file.file.on('data', (chunk) => {
     if(!Buffer.isBuffer(chunk)) {
-      throw new EzdError('unexpected non-buffer stream data', 'JCD_2.1');
+      file.file.emit('error', new EzdError('unexpected non-buffer stream data', 'JCD_2.1'));
     }
     hasher.update(chunk);
   });
-  file.file.once('error', deferred.reject);
-
-  gcsWs.once('error', deferred.reject);
-  gcsWs.once('close', () => {
-    deferred.resolve();
-  });
-  await deferred.promise;
+  await streamp.pipeline([ file.file, gcsFile.createWriteStream() ]);
   let hashStr = hasher.digest();
   let metadataResp = await gcsFile.setMetadata({
     metadata: {
