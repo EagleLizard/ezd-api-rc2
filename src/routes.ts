@@ -101,7 +101,11 @@ export function registerAuthNRoutes(app: FastifyInstance) {
     jcdCtrl.postProjectImg
   );
 
-  app.get(`${jcdCtrl.jcd_img_route_prefix}/*`, { schema: jcdCtrl.GetJcdImg }, jcdCtrl.getImg);
+  app.get(
+    `${jcdCtrl.jcd_img_proxy_route_prefix}/*`,
+    { schema: jcdCtrl.GetJcdImgProxy },
+    jcdCtrl.getImgProxy
+  );
   app.get('/v1/jcd/ezd-test', { schema: jcdCtrl.GetEzdTest }, jcdCtrl.getEzdTest);
   app.get('/v1/jcd/export', { schema: jcdCtrl.GetJcdExport }, jcdCtrl.getJcdExport);
 

@@ -200,22 +200,22 @@ async function postProjectImg(req: ReqTB<PostProjectImg>, res: RepTB<PostProject
   return res.status(200).send({});
 }
 
-const jcd_img_route_prefix = '/v1/jcd/img' as const;
-const GetJcdImg = {
+const jcd_img_proxy_route_prefix = '/v1/jcd/img-proxy' as const;
+const GetJcdImgProxy = {
   response: {
     200: Type.Any(),
     403: Type.Any(),
     404: Type.Any(),
   }
 } as const satisfies FastifySchema;
-type GetJcdImg = typeof GetJcdImg;
-async function getJcdImg(req: ReqTB<GetJcdImg>, res: RepTB<GetJcdImg>) {
+type GetJcdImgProxy = typeof GetJcdImgProxy;
+async function getJcdImgProxy(req: ReqTB<GetJcdImgProxy>, res: RepTB<GetJcdImgProxy>) {
   let ctxUser = req.ctx.getUser();
   let hasJcdPerm = await authzService.checkPermission(ctxUser.user_id, 'jcd.proj.read');
   if(!hasJcdPerm) {
     return res.status(403).send();
   }
-  let proxyPath = req.url.substring(jcd_img_route_prefix.length);
+  let proxyPath = req.url.substring(jcd_img_proxy_route_prefix.length);
   let proxyUrl = `${ezdConfig.eaglelizard_api_host}/image/v2${proxyPath}`;
   let resp: Response;
   try {
@@ -286,14 +286,14 @@ async function getJcdExport(req: ReqTB<GetJcdExport>, res: RepTB<GetJcdExport>):
 }
 
 export const jcdCtrl = new class JcdCtrl {
-  jcd_img_route_prefix = jcd_img_route_prefix;
+  jcd_img_proxy_route_prefix = jcd_img_proxy_route_prefix;
 
   CreateJcdProject = CreateJcdProject;
   DeleteJcdProject = DeleteJcdProject;
   GetJcdProjects = GetJcdProjects;
   GetJcdProjectImg = GetJcdProjectImg;
   PostProjectImg = PostProjectImg;
-  GetJcdImg = GetJcdImg;
+  GetJcdImgProxy = GetJcdImgProxy;
   GetEzdTest = GetEzdTest;
   GetJcdExport = GetJcdExport;
 
@@ -302,7 +302,7 @@ export const jcdCtrl = new class JcdCtrl {
   getProjects = getProjects;
   getProjectImg = getProjectImg;
   postProjectImg = postProjectImg;
-  getImg = getJcdImg;
+  getImgProxy = getJcdImgProxy;
   getEzdTest = getEzdTest;
   getJcdExport = getJcdExport;
 };
