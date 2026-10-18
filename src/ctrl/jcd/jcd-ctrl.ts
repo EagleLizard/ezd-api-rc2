@@ -200,6 +200,80 @@ async function postProjectImg(req: ReqTB<PostProjectImg>, res: RepTB<PostProject
   return res.status(200).send({});
 }
 
+const DeleteProjectImg = {
+  params: Type.Object({
+    projKey: Type.String(),
+  }),
+  querystring: Type.Object({
+    env: Type.String(),
+    imgKey: Type.String(),
+  }),
+  response: {
+    200: Type.Any(),
+    403: Type.Object({ errMsg: Type.String() }),
+    404: Type.String(),
+  }
+} as const satisfies FastifySchema;
+type DeleteProjectImg = typeof DeleteProjectImg;
+async function deleteProjectImg(req: ReqTB<DeleteProjectImg>, res: RepTB<DeleteProjectImg>) {
+  let ctxUser = req.ctx.getUser();
+  let hasPerm = await perm.check(ctxUser.user_id, 'jcd.mgmt');
+  if(!hasPerm) {
+    return res.status(403).send({ errMsg: 'Permission denied' });
+  }
+  try {
+    await jcdProjService.deleteImgV3({
+      env: req.query.env,
+      projKey: req.params.projKey,
+      imgKey: req.query.imgKey,
+    });
+  } catch(e) {
+    if(EzdError.is(e)) {
+      if(e.code === 'JCD_2.6') {
+        return res.status(403).send({errMsg: e.message});
+      }
+      if(e.code === 'JCD_2.7') {
+        return res.status(404).send(e.message);
+      }
+    }
+    throw e;
+  }
+}
+
+const GetImg = {
+  params: Type.Object({
+    '*': Type.String(),
+  }),
+  querystring: Type.Object({
+    env: Type.String(),
+    sz: Type.Optional(Type.String()),
+  }),
+  response: {
+    200: Type.Any(),
+    403: Type.Object({ errMsg: Type.String() }),
+    404: Type.Any(),
+  },
+} as const satisfies FastifySchema;
+type GetImg = typeof GetImg;
+async function getImg(req: ReqTB<GetImg>, res: RepTB<GetImg>) {
+  let ctxUser = req.ctx.getUser();
+  let hasPerm = await perm.check(ctxUser.user_id, 'jcd.img.read');
+  if(!hasPerm) {
+    return res.status(403).send({ errMsg: 'Permission denied' });
+  }
+  let imgFile = await jcdFs.getImgFile(req.query.env, req.params['*'], req.query.sz);
+  if(EzdError.is(imgFile)) {
+    if(imgFile.code === 'JCD_2.5') {
+      return res.status(404).send();
+    }
+    throw imgFile;
+  }
+  let [ gcsFileMeta ] = await imgFile.getMetadata();
+  res.header('content-type', gcsFileMeta.contentType);
+  res.header('content-length', gcsFileMeta.size);
+  return res.status(200).send(imgFile.createReadStream());
+}
+
 const jcd_img_proxy_route_prefix = '/v1/jcd/img-proxy' as const;
 const GetJcdImgProxy = {
   response: {
@@ -293,6 +367,8 @@ export const jcdCtrl = new class JcdCtrl {
   GetJcdProjects = GetJcdProjects;
   GetJcdProjectImg = GetJcdProjectImg;
   PostProjectImg = PostProjectImg;
+  DeleteProjectImg = DeleteProjectImg;
+  GetImg = GetImg;
   GetJcdImgProxy = GetJcdImgProxy;
   GetEzdTest = GetEzdTest;
   GetJcdExport = GetJcdExport;
@@ -302,6 +378,8 @@ export const jcdCtrl = new class JcdCtrl {
   getProjects = getProjects;
   getProjectImg = getProjectImg;
   postProjectImg = postProjectImg;
+  deleteProjectImg = deleteProjectImg;
+  getImg = getImg;
   getImgProxy = getJcdImgProxy;
   getEzdTest = getEzdTest;
   getJcdExport = getJcdExport;

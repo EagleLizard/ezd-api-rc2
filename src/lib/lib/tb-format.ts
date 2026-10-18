@@ -2,8 +2,13 @@
 import Format from 'typebox/format';
 
 export const tbFormat = {
+  init: init,
   isPgDateTime: isPgDateTime,
 } as const;
+
+function init() {
+  Format.Set('pg-date-time', tbFormat.isPgDateTime);
+}
 
 /*
   Based on Typebox provided format, modified for postgres.

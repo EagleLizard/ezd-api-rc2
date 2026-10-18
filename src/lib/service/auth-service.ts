@@ -2,7 +2,6 @@
 import { UserDto } from '../models/user-dto';
 import { ezdConfig } from '../config';
 import { JwtPayload } from '../models/jwt-payload';
-import { jwtConfig } from '../lib/jwt/jwt-config';
 import { DecodedJwt, jwt } from '../lib/jwt/jwt';
 import { logger } from '../logger/logger';
 
@@ -19,7 +18,7 @@ type GetJwtOpts = {
 
 function getJwt(userId: UserDto['user_id'], opts: GetJwtOpts = {}): string {
   let payload: JwtPayload = {
-    iss: opts.iss ?? jwtConfig.ezdApiIssuer,
+    iss: opts.iss ?? ezdConfig.ezdApiIssuer,
     aud: opts.aud ?? 'ezd-user',
     exp: opts.exp ?? Math.ceil(Date.now() / 1000) + 7200,
     userId: userId,

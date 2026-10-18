@@ -18,6 +18,7 @@ import { ezdErrorCodes } from '../models/error/ezd-error-codes';
 import { JcdV3GcpEntity } from '../models/jcd/jcd-v3-gcp-entity';
 import { JcdNewProjDto } from '../models/jcd/jcd-new-proj-dto';
 import { PropertyFilter } from '@google-cloud/datastore';
+import { jcdFs } from './jcd-file-service';
 
 const jcd_v3_project_key = 'JcdProjectKeyV3';
 const jcd_v3_db_project_kind = 'JcdProjectV3';
@@ -54,8 +55,8 @@ export const jcdProjService = new class JcdProjService {
   getKey = getKey;
   copyProjV3 = copyProjV3;
   deleteProjV3 = deleteProjV3;
-
   createProj = createProj;
+
   getProjPreviews = getProjPreviews;
   getProjPreviewByRoute = getProjPreviewByRoute;
   getProject = getProject;
@@ -64,8 +65,9 @@ export const jcdProjService = new class JcdProjService {
   getProjectOrders = getProjectOrders;
   getProjectImages = getProjectImages;
   getTitleImages = getTitleImages;
+  deleteImgV3 = deleteImgV3;
   createImg = createImg;
-  getImgByPath = getImgByPath;
+  getImgByKey = getImgByKey;
 
   getEzdTest = getEzdTest;
 };
@@ -435,13 +437,43 @@ async function getProjectImages(
   opts: {active?: boolean} = {}
 ): Promise<JcdImage[]> {
   let query = gcpDb.query(jcd_v3_db_image, env)
-    .filter('projectKey', '=', projectKey);
+    .filter(new PropertyFilter('projectKey', '=', projectKey));
   if(opts.active === true) {
     query = query.filter('active', true);
   }
   let queryRes = await query.run();
-  let jcdImages = queryRes[0].map(JcdImage.parse);
+  let jcdImages = queryRes[0].map(JcdImage.parse).toSorted((a, b) => a.orderIdx - b.orderIdx);
   return jcdImages;
+}
+
+type DeleteV3ImgOpts = {
+  env: string;
+  projKey: string;
+  imgKey: string;
+} & {};
+async function deleteImgV3(opts: DeleteV3ImgOpts) {
+  /*
+  check image exists, get image
+  get all GCS files and delete
+  delete jcd-v3 image
+  update image orders to fill gap
+    - is this needed?
+  _*/
+  if(jcdService.checkDefaultEnv(opts.env)) {
+    throw new EzdError('cannot delete proj image from default namespace (yet)', 'JCD_2.6');
+  }
+  let jcdImage = await jcdProjService.getImgByKey(opts.env, opts.imgKey, opts.projKey);
+  if(jcdImage === undefined) {
+    throw new EzdError('jcd proj image not found', 'JCD_2.7');
+  }
+  /* delete GCS image files _*/
+  await jcdFs.delImgFiles({
+    env: opts.env,
+    imgPath: jcdImage.bucketFile,
+  });
+  /* delete jcd v3 image entity  _*/
+  let jcdImageEntityKey = JcdV3GcpEntity.extractKey(jcdImage);
+  await gcpDb.delete(jcdImageEntityKey);
 }
 
 type CreateJcdProjImgOpts = {
@@ -537,9 +569,14 @@ function getNextImgOrderIdx(jcdV3Images: JcdImage[]): number {
   return nextOrderIdx + 1;
 }
 
-async function getImgByPath(bucketPath: string, env: string): Promise<JcdImage | undefined> {
+async function getImgByKey(
+  env: string,
+  imgId: string,
+  projKey: string
+): Promise<JcdImage | undefined> {
   let query = gcpDb.query(jcd_v3_db_image, env)
-    .filter(new PropertyFilter('bucketFile', '=', bucketPath))
+    .filter(new PropertyFilter('id', '=', imgId))
+    .filter(new PropertyFilter('projectKey', '=', projKey))
     .limit(1)
   ;
   let queryRes = await query.run();

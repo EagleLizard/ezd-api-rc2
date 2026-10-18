@@ -8,6 +8,9 @@ const JobDtoTSchema = Type.Object({
   data: Type.String(),
   status: Type.Union([
     Type.Literal('pending'),
+    Type.Literal('in_progress'),
+    Type.Literal('completed'),
+    Type.Literal('failed'),
   ]),
   run_at: Type.String({ format: 'pg-date-time' }),
   created_at: Type.String({ format: 'pg-date-time' }),

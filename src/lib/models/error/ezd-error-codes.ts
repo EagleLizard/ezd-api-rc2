@@ -30,6 +30,10 @@ export const ezdErrorCodes = {
   permission_denied_delete_role: 'EZD_5.3',
   permission_denied_jcd: 'EZD_5.4',
 
+  invalid_job_type: 'EZD_6.0',
+  undefined_img_proc_content_type: 'EZD_6.1',
+  invalid_img_proc_content_type: 'EZD_6.2',
+
   jcd_env_copy_not_allowed: 'JCD_1.0',
   jcd_env_del_not_allowed: 'JCD_1.1',
   jcd_update_not_allowed: 'JCD_1.2',
@@ -38,6 +42,10 @@ export const ezdErrorCodes = {
   jcd_proj_img_unexpected_file_data: 'JCD_2.1',
   jcd_proj_not_found: 'JCD_2.2',
   jcd_img_invalid_type: 'JCD_2.3',
+  jcd_img_invalid_image_filename: 'JCD_2.4',
+  jcd_gcs_img_not_found: 'JCD_2.5',
+  jcd_proj_img_del_not_allowed: 'JCD_2.6',
+  jcd_proj_img_del_not_found: 'JCD_2.7',
 } as const;
 
 export type EzdErrorCode = typeof ezdErrorCodes[keyof typeof ezdErrorCodes];

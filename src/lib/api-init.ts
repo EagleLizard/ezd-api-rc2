@@ -13,6 +13,7 @@ const super_user_perms = [
   'role.read',
   'permission.read',
   'jcd.mgmt',
+  'jcd.img.read',
   'jcd.proj.read',
   'jcd.test',
   'jcd.export',

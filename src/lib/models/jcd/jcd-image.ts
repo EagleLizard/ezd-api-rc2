@@ -13,7 +13,6 @@ const JcdImageTSchema = Type.Object({
     TODO: check to deprecate
   _*/
   orderIdx: Type.Number(),
-  // imageType: Type.String(),
   imageType: Type.Union([
     Type.Literal('GALLERY'),
     Type.Literal('TITLE'),

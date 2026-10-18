@@ -3,8 +3,11 @@ import 'dotenv/config';
 import { prim } from '../util/validate-primitives';
 
 const DEV_ENV_STR = 'dev';
+const ezdApiIssuer = 'ezd-api';
 
 const ezdConfig = {
+  ezdApiIssuer: ezdApiIssuer,
+
   EZD_HOST: getEnvVarOrErr('EZD_HOST'),
   EZD_PORT: getNumberEnvVar('EZD_PORT'),
   EZD_WEB_ORIGIN: getEnvVarOrErr('EZD_WEB_ORIGIN'),

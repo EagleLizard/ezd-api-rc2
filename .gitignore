@@ -6,7 +6,6 @@ dist
 coverage
 test-reports
 stats.html
-data
 .env
 data
 build
@@ -16,5 +15,6 @@ _logs
 _test-data
 
 _jcd_cache
+_jcd_tmp
 ezd_api_pg_db_data
 gcp-private-key.json

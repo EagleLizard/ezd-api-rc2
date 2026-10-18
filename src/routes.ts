@@ -95,11 +95,18 @@ export function registerAuthNRoutes(app: FastifyInstance) {
     { schema: jcdCtrl.GetJcdProjectImg },
     jcdCtrl.getProjectImg
   );
+  app.delete(
+    '/v1/jcd/project/:projKey/img',
+    { schema: jcdCtrl.DeleteProjectImg },
+    jcdCtrl.deleteProjectImg,
+  );
   app.post(
     '/v1/jcd/project/:projKey/img',
     { schema: jcdCtrl.PostProjectImg },
     jcdCtrl.postProjectImg
   );
+
+  app.get('/v1/jcd/img/*', { schema: jcdCtrl.GetImg }, jcdCtrl.getImg);
 
   app.get(
     `${jcdCtrl.jcd_img_proxy_route_prefix}/*`,
