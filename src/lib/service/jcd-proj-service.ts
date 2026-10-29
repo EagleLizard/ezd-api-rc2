@@ -19,6 +19,7 @@ import { JcdV3GcpEntity } from '../models/jcd/jcd-v3-gcp-entity';
 import { JcdNewProjDto } from '../models/jcd/jcd-new-proj-dto';
 import { PropertyFilter } from '@google-cloud/datastore';
 import { jcdFs } from './jcd-file-service';
+import { jcdEnvService } from './jcd-env-service';
 
 const jcd_v3_project_key = 'JcdProjectKeyV3';
 const jcd_v3_db_project_kind = 'JcdProjectV3';
@@ -51,6 +52,8 @@ const jcdImagesCache = ezdCache.init('jcd_project_images', (val) => {
 
 /* JCD project service _*/
 export const jcdProjService = new class JcdProjService {
+  jcd_v3_db_image = jcd_v3_db_image;
+
   getKeys = getKeys;
   getKey = getKey;
   copyProjV3 = copyProjV3;
@@ -122,13 +125,12 @@ async function copyProjV3(opts: JcdEnvCopyProjOpts): Promise<JcdEnvCopyProjRes> 
     throw new EzdError('copy to default env not permitted (yet)', 'JCD_1.0');
   }
   if(opts.fromEnv === opts.toEnv) {
-    throw new EzdError('cannot copy env to self', ezdErrorCodes.jcd_env_copy_not_allowed);
+    throw new EzdError('cannot copy env to self', 'JCD_1.0');
   }
   let srcEntitiesPromises = [
     getV3SrcEntities(jcd_v3_project_key, opts.projKey, opts.fromEnv),
     getV3SrcEntities(jcd_v3_db_project_order, opts.projKey, opts.fromEnv),
     getV3SrcEntities(jcd_v3_db_project_kind, opts.projKey, opts.fromEnv),
-    getV3SrcEntities(jcd_v3_db_image, opts.projKey, opts.fromEnv),
   ];
   let srcEntities: JcdV3GcpEntity[] = (await Promise.all(srcEntitiesPromises)).flat();
   let destInsertEntityKeys: entity.Key[] = srcEntities.map(srcEntity => {
@@ -175,6 +177,11 @@ async function copyProjV3(opts: JcdEnvCopyProjOpts): Promise<JcdEnvCopyProjRes> 
     }
   }
   await gcpDb.insert(destInsertEntities);
+  await jcdEnvService.copyProjImgsV3({
+    fromEnv: opts.fromEnv,
+    toEnv: opts.toEnv,
+    projKey: opts.projKey,
+  });
   ezdCache.bust();
   return {
     inserted: insertedKeys,
@@ -351,12 +358,12 @@ async function getProjPreviewByRoute(
   if(jcdProj === undefined) {
     return undefined;
   }
-  let jcdImage = await getProjTitleImage(jcdProj.projectKey, ns);
+  let titleJcdImage = await getProjTitleImage(jcdProj.projectKey, ns);
   let projPreview: JcdProjPreview = {
     projectKey: jcdProj.projectKey,
     route: jcdProj.route,
     title: jcdProj.title,
-    titleUri: jcdImage?.bucketFile ?? 'bigbird4.jpg',
+    titleUri: titleJcdImage?.bucketFile ?? 'bigbird4.jpg', // TODO:xxx: better placeholder
     // orderIndex: projOrder?.orderIdx ?? -1,
     orderIndex: -1,
   };
@@ -397,7 +404,7 @@ async function getProject(projKey: string, env?: string): Promise<JcdProject | u
   if(queryRes[0][0] === undefined) {
     return;
   }
-  proj = JcdProject.decode(queryRes[0][0]);
+  proj = JcdProject.parse(queryRes[0][0]);
   jcdProjCache.set(cacheKey, proj);
   return proj;
 }

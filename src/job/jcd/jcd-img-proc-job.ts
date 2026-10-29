@@ -137,6 +137,10 @@ function getSharpTransformer(contentType: string, resizeFmt: JcdResizeFmt): shar
         compressionLevel: 9,
       });
       break;
+    case 'image/webp':
+      /* TODO:xxx: optimize webp image options _*/
+      sharpTransformer = sharp().webp();
+      break;
     default:
       throw new EzdError(`Invalid jcd-img-proc contentType: ${contentType}`, 'EZD_6.2');
   }

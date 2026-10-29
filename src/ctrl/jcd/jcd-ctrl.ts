@@ -16,8 +16,9 @@ import { JcdImage } from '../../lib/models/jcd/jcd-image';
 import { EzdError } from '../../lib/models/error/ezd-error';
 import { perm } from '../../lib/service/perm-service';
 import { JcdNewProjDto } from '../../lib/models/jcd/jcd-new-proj-dto';
-import { hashUtil } from '../../lib/lib/hash-util';
 import { jcdFs } from '../../lib/service/jcd-file-service';
+import { JcdUploadProjImageResDto } from '../../lib/models/jcd/jcd-upload-proj-image-res-dto';
+import { jcdImgUtil } from '../../lib/lib/jcd/jcd-img-util';
 
 const CreateJcdProject = {
   body: Type.Object({
@@ -111,29 +112,29 @@ async function getProjects(
   if(!hasJcdPerm) {
     return res.status(403).send({});
   }
-  let env = req.query.env;
+  let _env = req.query.env;
   let route = req.query.route;
   try {
     if(req.query.preview) {
       if(route !== undefined) {
         let jcdProjPreview = await jcdProjService
-          .getProjPreviewByRoute(route, env);
+          .getProjPreviewByRoute(route, _env);
         if(jcdProjPreview === undefined) {
           return res.status(404).send({ message: 'preview not found' });
         }
         return res.status(200).send(jcdProjPreview);
       }
-      let projPreviews = await jcdProjService.getProjPreviews(env);
+      let projPreviews = await jcdProjService.getProjPreviews(_env);
       return res.status(200).send(projPreviews);
     }
     if(route !== undefined) {
-      let jcdProject = await jcdProjService.getProjectByRoute(route, env);
+      let jcdProject = await jcdProjService.getProjectByRoute(route, _env);
       if(jcdProject === undefined) {
         return res.status(404).send({ message: 'project not found' });
       }
       return res.status(200).send(jcdProject);
     }
-    let jcdProjects = await jcdProjService.getProjects(env);
+    let jcdProjects = await jcdProjService.getProjects(_env);
     return res.status(200).send(jcdProjects);
   } catch(e) {
     console.error(e);
@@ -178,8 +179,9 @@ const PostProjectImg = {
     type: Type.Union([ Type.Literal('TITLE'), Type.Literal('GALLERY') ]),
   }),
   response: {
-    200: Type.Object({}),
+    200: JcdUploadProjImageResDto.schema,
     403: Type.Object({ errMsg: Type.String() }),
+    404: Type.Object({ errMsg: Type.String() }),
   }
 } as const satisfies FastifySchema;
 type PostProjectImg = typeof PostProjectImg;
@@ -191,13 +193,49 @@ async function postProjectImg(req: ReqTB<PostProjectImg>, res: RepTB<PostProject
   }
   /* todo:xxx: use req.parts() to support multiple files per request _*/
   let file = await req.file();
-  let projKey = req.params.projKey;
-  let env = req.query.env;
-  let imageType = req.query.type;
-  if(file !== undefined) {
-    let imgUploadRes = await jcdFs.uploadProjImg(file, imageType, projKey, env);
+  if(file === undefined) {
+    return res.status(403).send({ errMsg:  'Invalid request, no multipart file.' });
   }
-  return res.status(200).send({});
+  let projKey = req.params.projKey;
+  let _env = req.query.env;
+  let imageType = req.query.type;
+  let uploadProjImageRes: JcdUploadProjImageResDto;
+  try {
+    let jcdProj = await jcdProjService.getProject(projKey, _env);
+    if(jcdProj === undefined) {
+      throw new EzdError(`Project ${projKey} not found`, 'JCD_2.2');
+    }
+    let imgBucketFile = [ jcdProj.route, file.filename ].join(jcdImgUtil.gcs_path_delim);
+    let jcdImage = await jcdProjService.getImgByKey(_env, imgBucketFile, projKey);
+    if(jcdImage === undefined) {
+      /* create if not exist _*/
+      jcdImage = await jcdProjService.createImg(imgBucketFile, projKey, _env, {
+        imageType: imageType
+      });
+    }
+    uploadProjImageRes = await jcdFs.uploadProjImg({
+      file: {
+        rs: file.file,
+        filename: file.filename,
+        mimetype: file.mimetype,
+      },
+      jcdImage,
+      env: _env,
+    });
+  } catch(e) {
+    if(EzdError.is(e)) {
+      if(e.code === 'JCD_2.8') {
+        return res.status(403).send({
+          errMsg: `Invalid image mime type '${file.mimetype}' for file: ${file.filename}`,
+        });
+      }
+      if(e.code === 'JCD_2.2') {
+        return res.status(404).send({ errMsg: e.message });
+      }
+    }
+    throw e;
+  }
+  return res.status(200).send(uploadProjImageRes);
 }
 
 const DeleteProjectImg = {
@@ -271,6 +309,7 @@ async function getImg(req: ReqTB<GetImg>, res: RepTB<GetImg>) {
   let [ gcsFileMeta ] = await imgFile.getMetadata();
   res.header('content-type', gcsFileMeta.contentType);
   res.header('content-length', gcsFileMeta.size);
+  // res.header('cache-control', `max-age=${10}`);
   return res.status(200).send(imgFile.createReadStream());
 }
 

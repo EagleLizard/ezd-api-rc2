@@ -12,6 +12,7 @@ const super_user_perms = [
   'role.delete',
   'role.read',
   'permission.read',
+  'job.mgmt',
   'jcd.mgmt',
   'jcd.img.read',
   'jcd.proj.read',

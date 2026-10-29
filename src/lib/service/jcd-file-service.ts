@@ -1,16 +1,19 @@
 
 import streamp from 'node:stream/promises';
-import type { MultipartFile } from '@fastify/multipart';
 import { Storage } from '@google-cloud/storage';
 
 import { EzdError } from '../models/error/ezd-error';
 import { hashUtil } from '../lib/hash-util';
-import { jcdProjService } from './jcd-proj-service';
 import { jcdCfg } from '../config/jcd-config';
 import { jobService } from './job-service';
 import { JcdImgProcJobData } from '../models/job/jcd-img-proc-job-data';
 import { jcdImgUtil } from '../lib/jcd/jcd-img-util';
 import { jcdImageSize } from '../models/jcd/jcd-image-size';
+import { JobDto } from '../models/job/job-dto';
+import { JcdImage } from '../models/jcd/jcd-image';
+import { JcdUploadProjImageResDto } from '../models/jcd/jcd-upload-proj-image-res-dto';
+import { Readable } from 'node:stream';
+import { jcdService } from './jcd-service';
 
 export const jcdFs = {
   delImgFiles: delImgFiles,
@@ -36,13 +39,14 @@ async function delImgFiles(opts: DelImgFilesOpts) {
   let storage = new Storage();
   let bucket = storage.bucket(jcdCfg.img_v4.bucket);
   let gcsFiles = gcsFilePaths.map((gcsPath) => bucket.file(gcsPath));
-  for(let i = 0; i < gcsFiles.length; i++) {
-    let gcsFile = gcsFiles[i];
-    let [ gcsFileExists ] = await gcsFile.exists();
-    if(gcsFileExists) {
-      await gcsFile.delete();
-    }
-  }
+  await Promise.all(gcsFiles.map(gcsFile => (
+    (async () => {
+      let [ gcsFileExists ] = await gcsFile.exists();
+      if(gcsFileExists) {
+        await gcsFile.delete();
+      }
+    })()
+  )));
 }
 
 async function getImgFile(env: string, imgPath: string, sz?: string) {
@@ -65,44 +69,40 @@ async function getImgFile(env: string, imgPath: string, sz?: string) {
   return gcsFile;
 }
 
-async function uploadProjImg(
-  file: MultipartFile,
-  imageType: 'TITLE' | 'GALLERY',
-  projKey: string,
-  env: string
-): Promise<void> {
-  /*
-  - get existing jcd image
-    - new images need more unique key than only image name
-      > folderKey + file name
-  - stream to source image bucket
-    - path will be:
-      img-v4-src/<jcd project route>/<image name>
-    - if it exists already...
-      > overwrite?
-      > error?
-  - get hash while streaming
-  _*/
-  let jcdProj = await jcdProjService.getProject(projKey, env);
-  if(jcdProj === undefined) {
-    throw new EzdError(`Project ${projKey} not found`, 'JCD_2.2');
+type UploadProjImgOpts = {
+  file: {
+    rs: Readable;
+    filename: string;
+    mimetype: string;
+  };
+  jcdImage: JcdImage;
+  env: string;
+} & {};
+async function uploadProjImg(opts: UploadProjImgOpts): Promise<JcdUploadProjImageResDto> {
+  let jcdImage = opts.jcdImage;
+  if(jcdService.checkDefaultEnv(opts.env)) {
+    throw new EzdError('upload to default env not permitted (yet)', 'JCD_2.9');
   }
-  let imgBucketFile = [ jcdProj.route, file.filename ].join('/');
-  let jcdImage = await jcdProjService.createImg(imgBucketFile, projKey, env, {
-    imageType,
-  });
-  let bucketFilePath = jcdImgUtil.getImgV4BucketPath(env, imgBucketFile);
+  if(!jcdCfg.img_v4.valid_mime_types.includes(opts.file.mimetype)) {
+    throw new EzdError(`Invalid image mime type '${
+      opts.file.mimetype
+    }' for file: ${opts.file.filename}`, 'JCD_2.8');
+  }
+  let bucketFilePath = jcdImgUtil.getImgV4BucketPath(opts.env, jcdImage.bucketFile);
   let srcBucketFilePath = jcdImgUtil.getSrcPath(bucketFilePath);
-  let gcsImgUploadRes = await uploadGcsImg(srcBucketFilePath, file);
+  let gcsImgUploadRes = await uploadGcsImg(srcBucketFilePath, opts.file.rs);
   let procImgJobData: JcdImgProcJobData = {
     srcPath: srcBucketFilePath,
     destPath: jcdImage.bucketFile,
-    env: env,
+    env: opts.env,
     jcdImageKey: jcdImage.id,
     projectKey: jcdImage.projectKey,
   };
   let jobDataStr = JSON.stringify(procImgJobData);
-  let jobDto = await jobService.enqueue('jcd_img_proc', jobDataStr);
+  let jobDto: JobDto = await jobService.enqueue('jcd_img_proc', jobDataStr);
+
+  let res: JcdUploadProjImageResDto = { jcdImage, job_id: jobDto.job_id };
+  return res;
 }
 
 type GcsImgUploadRes = {
@@ -110,7 +110,7 @@ type GcsImgUploadRes = {
 } & {};
 async function uploadGcsImg(
   gcsFilePath: string,
-  file: MultipartFile
+  file: Readable
 ): Promise<GcsImgUploadRes | void> {
   let hasher = hashUtil.getHasher();
   let storage = new Storage;
@@ -119,13 +119,13 @@ async function uploadGcsImg(
   /*
   TODO:xxx: throw error if file exists
   _*/
-  file.file.on('data', (chunk) => {
+  file.on('data', (chunk) => {
     if(!Buffer.isBuffer(chunk)) {
-      file.file.emit('error', new EzdError('unexpected non-buffer stream data', 'JCD_2.1'));
+      file.emit('error', new EzdError('unexpected non-buffer stream data', 'JCD_2.1'));
     }
     hasher.update(chunk);
   });
-  await streamp.pipeline([ file.file, gcsFile.createWriteStream() ]);
+  await streamp.pipeline([ file, gcsFile.createWriteStream() ]);
   let hashStr = hasher.digest('hex');
   let metadataResp = await gcsFile.setMetadata({
     metadata: {

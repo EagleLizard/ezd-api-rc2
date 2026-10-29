@@ -6,6 +6,7 @@ export const jobService = {
   enqueue: enqueue,
   getNextJob: getNextJob,
   updateJobStatus: updateJobStatus,
+  getJob: getJob,
 } as const;
 
 async function enqueue(jobType: JobType, data: string): Promise<JobDto> {
@@ -20,4 +21,8 @@ async function updateJobStatus(job_id: JobDto['job_id'], status: JobDto['status'
 
 async function getNextJob(): Promise<JobDto | undefined> {
   return jobRepo.getNextJob(PgClient);
+}
+
+async function getJob(job_id: JobDto['job_id']): Promise<JobDto | undefined> {
+  return jobRepo.getJob(PgClient, job_id);
 }

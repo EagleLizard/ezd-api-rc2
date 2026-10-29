@@ -15,6 +15,7 @@ import { FastifyTypeBox } from './lib/models/fastify/fastify-typebox';
 import { authzCtrl } from './ctrl/authz/authz-ctrl';
 import { jcdCtrl } from './ctrl/jcd/jcd-ctrl';
 import { jcdEnvCtrl } from './ctrl/jcd/jcd-env-ctrl';
+import { JobCtrl } from './ctrl/job/job-ctrl';
 
 export function registerRoutes(app: FastifyTypeBox) {
   app.get('/health', getHealthCtrl);
@@ -82,6 +83,8 @@ export function registerAuthNRoutes(app: FastifyInstance) {
   app.get('/v1/authz/perm', {
     schema: authzCtrl.GetPermissions
   }, authzCtrl.getPermissions);
+
+  app.get('/v1/job', { schema: JobCtrl.GetJob }, JobCtrl.getJob);
 
   app.post('/v1/jcd/project', { schema: jcdCtrl.CreateJcdProject }, jcdCtrl.createJcdProject);
   app.get('/v1/jcd/project', { schema: jcdCtrl.GetJcdProjects }, jcdCtrl.getProjects);

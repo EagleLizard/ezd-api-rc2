@@ -50,6 +50,7 @@ const resize_fmt_map = {
     width: 250,
   },
 } as const satisfies Record<JcdImageSize, JcdResizeFmt>;
+assert(Object.entries(resize_fmt_map).every(([ key, fmt ]) => key === fmt.prefix));
 
 export const jcdImageSize = {
   image_size_map: image_size_map,

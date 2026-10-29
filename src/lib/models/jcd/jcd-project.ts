@@ -28,6 +28,7 @@ export type JcdProject = Static<typeof JcdProjectTSchema>;
 export const JcdProject = {
   schema: JcdProjectTSchema,
   decode: decodeJcdProject,
+  parse: tbUtil.parseFn<typeof JcdProjectTSchema, JcdProject>(JcdProjectTSchema),
 } as const;
 
 function decodeJcdProject(rawVal: unknown): JcdProject {

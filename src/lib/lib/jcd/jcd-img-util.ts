@@ -5,6 +5,7 @@ import { jcdCfg } from '../../config/jcd-config';
 const gcs_path_delim = '/';
 
 export const jcdImgUtil = {
+  gcs_path_delim: gcs_path_delim,
   getResizePath: getResizePath,
   getSrcPath: getSrcPath,
   getImgV4BucketPath: getImgV4BucketPath,
@@ -26,13 +27,15 @@ function getResizePath(
     : [ bucketPath ]
   ;
   let filePart = splat.pop()!;
-  let dotIdx = filePart.indexOf('.');
+  let dotIdx = filePart.lastIndexOf('.');
   if(dotIdx === -1) {
     throw new EzdError(`Invalid filename in bucket path: ${bucketPath}`, 'JCD_2.4');
   }
   let fileName = filePart.substring(0, dotIdx);
-  let ext = filePart.substring(dotIdx);
-  let fmtFileName = `${fileName}_${fmtKey}${ext}`;
+  let ext = filePart.substring(dotIdx + 1);
+  let resizeDirName = `${fileName}_${ext}`;
+  splat.push(resizeDirName);
+  let fmtFileName = `${fileName}_${fmtKey}.${ext}`;
   splat.push(fmtFileName);
   let resizePath = splat.join(delim);
   return resizePath;

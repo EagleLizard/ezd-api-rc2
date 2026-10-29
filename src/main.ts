@@ -1,6 +1,7 @@
 
 import 'source-map-support/register';
 import { Worker } from 'node:worker_threads';
+import { EventEmitter } from 'node:stream';
 import { initServer } from './server';
 import { tbFormat } from './lib/lib/tb-format';
 
@@ -16,6 +17,8 @@ let worker: Worker;
 })();
 
 async function init() {
+  /* maxListeners increase needed due to Google Cloud storage file streams */
+  EventEmitter.setMaxListeners(12);
   setProcName();
   tbFormat.init();
   await initJobs();

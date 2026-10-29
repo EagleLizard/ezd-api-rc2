@@ -8,6 +8,7 @@ export const jobRepo = {
   getNextJob: getNextJob,
   insertJob: insertJob,
   setJobStatus: setJobStatus,
+  getJob: getJob,
 } as const;
 
 async function getNextJob(pgClient: IPgClient): Promise<JobDto | undefined> {
@@ -46,4 +47,17 @@ async function setJobStatus(
     where job_id = $2
   `;
   await pgClient.query(queryStr, [ status, job_id ]);
+}
+
+async function getJob(pgClient: IPgClient, job_id: JobDto['job_id']): Promise<JobDto | undefined> {
+  let queryStr = `
+    select * from job j
+      where j.job_id = $1
+    limit 1
+  `;
+  let queryRes = await pgClient.query(queryStr, [ job_id ]);
+  if(queryRes.rows.length < 1) {
+    return undefined;
+  }
+  return JobDto.parse(queryRes.rows[0]);
 }

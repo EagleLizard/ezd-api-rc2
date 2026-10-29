@@ -11,6 +11,7 @@ export type JcdV3GcpEntity<T = Record<string | number | symbol, unknown>> = {
 export const JcdV3GcpEntity = {
   decode: decodeJcdV3GcpEntity,
   extractKey: extractKey,
+  deleteKey: deleteKey,
 } as const;
 
 function decodeJcdV3GcpEntity(rawEntity: unknown): JcdV3GcpEntity {
@@ -28,4 +29,10 @@ function extractKey(rawEntity: unknown): entity.Key {
   let key = rawEntity[gcpDb.KEY];
   assert(gcpDb.isKey(key));
   return key;
+}
+
+function deleteKey(rawEntity: unknown) {
+  if(prim.isObject(rawEntity) && gcpDb.KEY in rawEntity) {
+    delete rawEntity[gcpDb.KEY];
+  }
 }
