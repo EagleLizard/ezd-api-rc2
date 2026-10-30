@@ -115,7 +115,7 @@ create table password (
 create table job (
   job_id SERIAL PRIMARY KEY,
   job_type TEXT NOT NULL,
-  data TEXT,
+  data jsonb,
   status TEXT DEFAULT 'pending',
 
   run_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

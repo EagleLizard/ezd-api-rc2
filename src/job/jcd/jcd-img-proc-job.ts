@@ -19,7 +19,7 @@ export const jcdImgProcJob = {
 };
 
 async function runJcdImgProcJob(job: JobDto) {
-  let jobData = JcdImgProcJobData.parse(JSON.parse(job.data));
+  let jobData = JcdImgProcJobData.parse(job.data);
   let storage = new Storage;
   let bucket = storage.bucket(jcdCfg.img_v4.bucket);
   let gcsFile = bucket.file(jobData.srcPath);

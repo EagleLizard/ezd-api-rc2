@@ -1,21 +1,21 @@
 
 import 'source-map-support/register';
 
-import { parentPort } from 'node:worker_threads';
+import { parentPort, Worker } from 'node:worker_threads';
 import timersp from 'node:timers/promises';
 import { EventEmitter } from 'node:stream';
 import { tbFormat } from '../lib/lib/tb-format';
 import { jobService } from '../lib/service/job-service';
 import { EzdError } from '../lib/models/error/ezd-error';
-import { jcdImgProcJob } from './jcd/jcd-img-proc-job';
 import { JobDto } from '../lib/models/job/job-dto';
 import { logger } from '../lib/logger/logger';
+import { perf } from '../lib/lib/perf';
+import { jobMsg } from '../lib/models/job/job-msg';
 
 type JobRunRes = void;
-type JobHandlerFn = {
-  (job: JobDto): Promise<JobRunRes>;
-} & {};
-const job_handler_map: Map<string, JobHandlerFn> = new Map();
+const job_worker_filename_map: Map<string, string> = new Map([
+  [ 'jcd_img_proc', './dist/job/jcd/jcd-img-proc-worker.js' ]
+]);
 
 const poll_interval_ms = 1e3;
 
@@ -39,11 +39,6 @@ function init() {
   EventEmitter.setMaxListeners(12);
   setProcName();
   tbFormat.init();
-  initJobHandlers();
-}
-
-function initJobHandlers() {
-  job_handler_map.set('jcd_img_proc', jcdImgProcJob.run);
 }
 
 async function startPoll() {
@@ -61,10 +56,6 @@ async function doPoll() {
   if(job === undefined) {
     return;
   }
-  let runJobFn = job_handler_map.get(job.job_type);
-  if(runJobFn === undefined) {
-    throw new EzdError(`Invalid job type: ${job.job_type}, job_id: ${job.job_id}`, 'EZD_6.0');
-  }
   let jobRunRes: JobRunRes;
   try {
     /*
@@ -78,7 +69,9 @@ async function doPoll() {
       }
     }, 'starting job');
     await jobService.updateJobStatus(job.job_id, 'in_progress');
-    jobRunRes = await runJobFn(job);
+    let clock = perf.getClock().start();
+    await runJob(job);
+    console.log(`job: ${job.job_type}:${job.job_id} took: ${clock.stop().toFixed(3)}ms`);
   } catch(e) {
     /*
       Uncaught errors should fail the job in database
@@ -96,6 +89,29 @@ async function doPoll() {
   }, 'finished job');
   console.log('jobRunRes: ', jobRunRes);
   await jobService.updateJobStatus(job.job_id, 'completed');
+}
+
+async function runJob(job: JobDto) {
+  let deferred = Promise.withResolvers<void>();
+  let filename = job_worker_filename_map.get(job.job_type);
+  if(filename === undefined) {
+    throw new EzdError(`Invalid job type: ${job.job_type}, job_id: ${job.job_id}`, 'EZD_6.0');
+  }
+  let worker = new Worker(filename);
+  worker.once('error', deferred.reject);
+  worker.postMessage({ job });
+  worker.on('message', msgHandler);
+
+  await deferred.promise;
+
+  await worker.terminate();
+
+  function msgHandler(val: unknown) {
+    if(val === jobMsg.done) {
+      deferred.resolve();
+      worker.off('message', msgHandler);
+    }
+  }
 }
 
 function setProcName() {

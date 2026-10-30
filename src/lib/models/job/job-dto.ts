@@ -5,7 +5,7 @@ import { tbUtil } from '../../../util/tb-util';
 const JobDtoTSchema = Type.Object({
   job_id: Type.Number(),
   job_type: Type.String(),
-  data: Type.String(),
+  data: Type.Unknown(),
   status: Type.Union([
     Type.Literal('pending'),
     Type.Literal('in_progress'),
