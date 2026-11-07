@@ -12,14 +12,12 @@ import { authzService } from './authz-service';
 import { EzdError } from '../models/error/ezd-error';
 import { ezdCache, EzdCacheItem } from '../lib/ezd-cache';
 import { JcdProjKeyDto } from '../models/jcd/jcd-proj-key-dto';
-import { prim } from '../../util/validate-primitives';
 import { jcdService } from './jcd-service';
 import { ezdErrorCodes } from '../models/error/ezd-error-codes';
 import { JcdV3GcpEntity } from '../models/jcd/jcd-v3-gcp-entity';
 import { JcdNewProjDto } from '../models/jcd/jcd-new-proj-dto';
 import { PropertyFilter } from '@google-cloud/datastore';
 import { jcdFs } from './jcd-file-service';
-import { jcdEnvService } from './jcd-env-service';
 
 const jcd_v3_project_key = 'JcdProjectKeyV3';
 const jcd_v3_db_project_kind = 'JcdProjectV3';
@@ -53,10 +51,12 @@ const jcdImagesCache = ezdCache.init('jcd_project_images', (val) => {
 /* JCD project service _*/
 export const jcdProjService = new class JcdProjService {
   jcd_v3_db_image = jcd_v3_db_image;
+  jcd_v3_project_key = jcd_v3_project_key;
+  jcd_v3_db_project_kind = jcd_v3_db_project_kind;
+  jcd_v3_db_project_order = jcd_v3_db_project_order;
 
   getKeys = getKeys;
   getKey = getKey;
-  copyProjV3 = copyProjV3;
   deleteProjV3 = deleteProjV3;
   createProj = createProj;
 
@@ -93,112 +93,6 @@ async function getKey(projKey: string, env: string): Promise<JcdProjKeyDto | und
   }
   let projKeyDto: JcdProjKeyDto = JcdProjKeyDto.decode(queryRes[0][0]);
   return projKeyDto;
-}
-
-/*
-  jcd v3 entities:
-    - JcdProjectKeyV3
-    - JcdProjectOrderV3
-    - JcdImageV3
-    - JcdProjectV3
-  copy jcd v3 project from one namespace (env) to another
-    1. check if the operation will overwrite any entities on the dest env
-      - if so, skip those
-    2. copy all of the entities over to the dest env (toEnv)
-    3. for now, it's an error case if toEnv is the default GCP namespace
-_*/
-// type JcdV3GcpEntity<T = Record<string | number | symbol, unknown>> = {
-//   key: entity.Key;
-//   data: T;
-// } & {};
-type JcdEnvCopyProjRes = {
-  inserted: entity.Key[];
-  skipped: entity.Key[];
-} & {};
-type JcdEnvCopyProjOpts = {
-  projKey: string;
-  fromEnv: string;
-  toEnv: string;
-} & {};
-async function copyProjV3(opts: JcdEnvCopyProjOpts): Promise<JcdEnvCopyProjRes> {
-  if(jcdService.checkDefaultEnv(opts.toEnv)) {
-    throw new EzdError('copy to default env not permitted (yet)', 'JCD_1.0');
-  }
-  if(opts.fromEnv === opts.toEnv) {
-    throw new EzdError('cannot copy env to self', 'JCD_1.0');
-  }
-  let srcEntitiesPromises = [
-    getV3SrcEntities(jcd_v3_project_key, opts.projKey, opts.fromEnv),
-    getV3SrcEntities(jcd_v3_db_project_order, opts.projKey, opts.fromEnv),
-    getV3SrcEntities(jcd_v3_db_project_kind, opts.projKey, opts.fromEnv),
-  ];
-  let srcEntities: JcdV3GcpEntity[] = (await Promise.all(srcEntitiesPromises)).flat();
-  let destInsertEntityKeys: entity.Key[] = srcEntities.map(srcEntity => {
-    assert(prim.isString(srcEntity.key.name));
-    let key = gcpDb.key({
-      namespace: opts.toEnv,
-      path: [ srcEntity.key.kind, srcEntity.key.name ],
-    });
-    return key;
-  });
-  /*
-  for now, skip entities that exist in the destination
-  _*/
-  let rawDestEntities = (await gcpDb.get(destInsertEntityKeys))[0];
-  assert(Array.isArray(rawDestEntities));
-  let destEntities: JcdV3GcpEntity[] = rawDestEntities.map(JcdV3GcpEntity.decode);
-
-  let destInsertEntities: JcdV3GcpEntity[] = [];
-  let insertedKeys: entity.Key[] = [];
-  let skippedKeys: entity.Key[] = [];
-  for(let i = 0; i < destInsertEntityKeys.length; i++) {
-    let destInsertKey = destInsertEntityKeys[i];
-    let foundDestEntity = destEntities.find(destEntity => {
-      return (
-        destEntity.key.kind === destInsertKey.kind
-        && destEntity.key.name === destInsertKey.name
-      );
-    });
-    if(foundDestEntity === undefined) {
-      let foundSrcEntity = srcEntities.find(srcEntity => {
-        return (
-          srcEntity.key.kind === destInsertKey.kind
-          && srcEntity.key.name === destInsertKey.name
-        );
-      });
-      assert(foundSrcEntity !== undefined);
-      destInsertEntities.push({
-        key: destInsertKey,
-        data: foundSrcEntity.data
-      });
-      insertedKeys.push(destInsertKey);
-    } else {
-      skippedKeys.push(destInsertKey);
-    }
-  }
-  await gcpDb.insert(destInsertEntities);
-  await jcdEnvService.copyProjImgsV3({
-    fromEnv: opts.fromEnv,
-    toEnv: opts.toEnv,
-    projKey: opts.projKey,
-  });
-  ezdCache.bust();
-  return {
-    inserted: insertedKeys,
-    skipped: skippedKeys,
-  };
-}
-
-async function getV3SrcEntities(
-  entityName: string,
-  projKey: string,
-  env: string
-): Promise<JcdV3GcpEntity[]> {
-  let query = gcpDb.query(entityName, env)
-    .filter('projectKey', '=', projKey)
-  ;
-  let entities: JcdV3GcpEntity[] = (await query.run())[0].map(JcdV3GcpEntity.decode);
-  return entities;
 }
 
 type DeleteJcdProjV3Opts = {

@@ -12,6 +12,7 @@ import { EzdError } from '../../lib/models/error/ezd-error';
 import { GcpNamespace } from '../../lib/models/gcp/gcp-namespace';
 import { GcpKey } from '../../lib/models/gcp/gcp-kind';
 import { gcpDbError } from '../../lib/models/gcp/gcp-db-error';
+import { jcdEnvService } from '../../lib/service/jcd-env-service';
 
 /*
 Env and Namespace are synonymous
@@ -187,6 +188,12 @@ const PostV3ProjCopy = {
     toEnvKey: Type.String(),
     projKey: Type.String(),
   }),
+  querystring: Type.Object({
+    imgFiles: Type.Boolean({
+      default: true,
+      description: 'whether to copy image files',
+    }),
+  }),
   response: {
     200: Type.Object({
       outcome: Type.String(),
@@ -211,6 +218,7 @@ async function postV3ProjCopy(
   let fromEnv = req.params.fromEnvKey;
   let toEnv = req.params.toEnvKey;
   let projKey = req.params.projKey;
+  let imgFiles = req.query.imgFiles;
 
   if(jcdService.checkDefaultEnv(toEnv)) {
     return res.status(403).send({ errMsg: 'cannot copy to default env (yet)' });
@@ -218,7 +226,7 @@ async function postV3ProjCopy(
   if(fromEnv === toEnv) {
     return res.status(403).send({ errMsg: 'cannot copy from env to itself'});
   }
-  let copyRes = await jcdProjService.copyProjV3({ projKey, fromEnv, toEnv });
+  let copyRes = await jcdEnvService.copyProjV3({ projKey, fromEnv, toEnv, imgFiles });
   let inserted: GcpKeyDto[] = copyRes.inserted.map(insertedKey => {
     return GcpKeyDto.decode(Object.assign({}, insertedKey));
   });

@@ -1,4 +1,7 @@
+
+import assert from 'node:assert';
 import { PropertyFilter } from '@google-cloud/datastore';
+import { entity } from '@google-cloud/datastore/build/src/entity';
 import { Storage } from '@google-cloud/storage';
 import { gcpDb } from '../client/gcp-db';
 import { JcdV3GcpEntity } from '../models/jcd/jcd-v3-gcp-entity';
@@ -10,15 +13,19 @@ import { jcdCfg } from '../config/jcd-config';
 import { jcdService } from './jcd-service';
 import { jcdFs } from './jcd-file-service';
 import { JcdUploadProjImageResDto } from '../models/jcd/jcd-upload-proj-image-res-dto';
+import { prim } from '../../util/validate-primitives';
+import { ezdCache } from '../lib/ezd-cache';
 
 export const jcdEnvService = {
   copyProjImgsV3: copyProjImgsV3,
+  copyProjV3: copyProjV3,
 } as const;
 
 type CopyImgV3Opts = {
   projKey: string;
   fromEnv: string;
   toEnv: string;
+  imgFiles: boolean;
 } & {};
 async function copyProjImgsV3(opts: CopyImgV3Opts) {
   if(jcdService.checkDefaultEnv(opts.toEnv)) {
@@ -52,7 +59,10 @@ async function copyProjImgsV3(opts: CopyImgV3Opts) {
       throw new EzdError(`Invalid filename in bucketFile: ${destImg.bucketFile}`, 'JCD_1.5');
     }
     let destBucketFile = [ srcProj.route, filename ].join(jcdImgUtil.gcs_path_delim);
-    if(destImg.bucketFile !== destBucketFile) {
+    if(
+      destImg.bucketFile !== destBucketFile
+      || destImg.id !== destBucketFile
+    ) {
       destImg.bucketFile = destBucketFile;
       destImg.id = destBucketFile;
     }
@@ -77,6 +87,10 @@ async function copyProjImgsV3(opts: CopyImgV3Opts) {
     return destImgEntity;
   });
   await gcpDb.insert(destImgEntities);
+  if(opts.imgFiles === false) {
+    /* skip image uploads. Currently only for api tests. _*/
+    return;
+  }
   /*
   initiate the uploads
   _*/
@@ -120,6 +134,102 @@ async function copyProjImgsV3(opts: CopyImgV3Opts) {
     uploadPromises.push(uploadPromise);
   }
   await Promise.all(uploadPromises);
+}
+
+/*
+  jcd v3 entities:
+    - JcdProjectKeyV3
+    - JcdProjectOrderV3
+    - JcdImageV3
+    - JcdProjectV3
+  copy jcd v3 project from one namespace (env) to another
+    1. check if the operation will overwrite any entities on the dest env
+      - if so, skip those
+    2. copy all of the entities over to the dest env (toEnv)
+    3. for now, it's an error case if toEnv is the default GCP namespace
+_*/
+// type JcdV3GcpEntity<T = Record<string | number | symbol, unknown>> = {
+//   key: entity.Key;
+//   data: T;
+// } & {};
+type JcdEnvCopyProjRes = {
+  inserted: entity.Key[];
+  skipped: entity.Key[];
+} & {};
+type JcdEnvCopyProjOpts = {
+  projKey: string;
+  fromEnv: string;
+  toEnv: string;
+  imgFiles: boolean;
+} & {};
+async function copyProjV3(opts: JcdEnvCopyProjOpts): Promise<JcdEnvCopyProjRes> {
+  if(jcdService.checkDefaultEnv(opts.toEnv)) {
+    throw new EzdError('copy to default env not permitted (yet)', 'JCD_1.0');
+  }
+  if(opts.fromEnv === opts.toEnv) {
+    throw new EzdError('cannot copy env to self', 'JCD_1.0');
+  }
+  let srcEntitiesPromises = [
+    getV3Entities(jcdProjService.jcd_v3_project_key, opts.projKey, opts.fromEnv),
+    getV3Entities(jcdProjService.jcd_v3_db_project_order, opts.projKey, opts.fromEnv),
+    getV3Entities(jcdProjService.jcd_v3_db_project_kind, opts.projKey, opts.fromEnv),
+  ];
+  let srcEntities: JcdV3GcpEntity[] = (await Promise.all(srcEntitiesPromises)).flat();
+  let destInsertEntityKeys: entity.Key[] = srcEntities.map(srcEntity => {
+    assert(prim.isString(srcEntity.key.name));
+    let key = gcpDb.key({
+      namespace: opts.toEnv,
+      path: [ srcEntity.key.kind, srcEntity.key.name ],
+    });
+    return key;
+  });
+  /*
+  for now, skip entities that exist in the destination
+  _*/
+  let rawDestEntities = (await gcpDb.get(destInsertEntityKeys))[0];
+  assert(Array.isArray(rawDestEntities));
+  let destEntities: JcdV3GcpEntity[] = rawDestEntities.map(JcdV3GcpEntity.decode);
+
+  let destInsertEntities: JcdV3GcpEntity[] = [];
+  let insertedKeys: entity.Key[] = [];
+  let skippedKeys: entity.Key[] = [];
+  for(let i = 0; i < destInsertEntityKeys.length; i++) {
+    let destInsertKey = destInsertEntityKeys[i];
+    let foundDestEntity = destEntities.find(destEntity => {
+      return (
+        destEntity.key.kind === destInsertKey.kind
+        && destEntity.key.name === destInsertKey.name
+      );
+    });
+    if(foundDestEntity === undefined) {
+      let foundSrcEntity = srcEntities.find(srcEntity => {
+        return (
+          srcEntity.key.kind === destInsertKey.kind
+          && srcEntity.key.name === destInsertKey.name
+        );
+      });
+      assert(foundSrcEntity !== undefined);
+      destInsertEntities.push({
+        key: destInsertKey,
+        data: foundSrcEntity.data
+      });
+      insertedKeys.push(destInsertKey);
+    } else {
+      skippedKeys.push(destInsertKey);
+    }
+  }
+  await gcpDb.insert(destInsertEntities);
+  await jcdEnvService.copyProjImgsV3({
+    fromEnv: opts.fromEnv,
+    toEnv: opts.toEnv,
+    projKey: opts.projKey,
+    imgFiles: opts.imgFiles,
+  });
+  ezdCache.bust();
+  return {
+    inserted: insertedKeys,
+    skipped: skippedKeys,
+  };
 }
 
 async function getV3Entities(
