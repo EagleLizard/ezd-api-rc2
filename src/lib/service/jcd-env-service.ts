@@ -14,7 +14,6 @@ import { jcdService } from './jcd-service';
 import { jcdFs } from './jcd-file-service';
 import { JcdUploadProjImageResDto } from '../models/jcd/jcd-upload-proj-image-res-dto';
 import { prim } from '../../util/validate-primitives';
-import { ezdCache } from '../lib/ezd-cache';
 
 export const jcdEnvService = {
   copyProjImgsV3: copyProjImgsV3,
@@ -225,7 +224,6 @@ async function copyProjV3(opts: JcdEnvCopyProjOpts): Promise<JcdEnvCopyProjRes> 
     projKey: opts.projKey,
     imgFiles: opts.imgFiles,
   });
-  ezdCache.bust();
   return {
     inserted: insertedKeys,
     skipped: skippedKeys,
